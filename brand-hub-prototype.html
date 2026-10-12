@@ -20,12 +20,12 @@
   --s1:#3987e5; --s2:#d95926; --s3:#199e70;
   --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;padding-inline:16px}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
 h1{font-size:24px} h2{font-size:16px} h3{font-size:13px;color:var(--ink2);font-weight:600}
-.wrap{max-width:1200px;margin:0 auto;padding-block:16px 64px}
-.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 16px 64px}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px}
 .topbar-in{max-width:1200px;margin:0 auto;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .logo{font-weight:700;letter-spacing:-.02em;font-size:16px;display:flex;align-items:center;gap:8px;margin-right:8px}
 .logo i{width:18px;height:18px;border-radius:5px;background:var(--accent);display:inline-block;position:relative}
@@ -125,12 +125,48 @@ dt{color:var(--muted)} dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 @media (prefers-reduced-motion:no-preference){.overlay{animation:fade .12s ease-out}@keyframes fade{from{opacity:0}}}
+
+.shell{display:flex;min-height:100vh}
+.main{flex:1;min-width:0}
+.side{width:244px;flex:none;position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;transition:width .15s}
+.side .logo{padding:6px 8px 14px;margin:0}
+.side .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:16px 10px 6px}
+.si{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:8px 10px;border-radius:8px;color:var(--ink2);cursor:pointer;text-align:left;font-weight:500}
+.si svg,.iconbtn svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.si:hover{background:var(--wash)}
+.si[aria-current="page"]{background:var(--wash);color:var(--ink);font-weight:650;box-shadow:inset 2px 0 0 var(--accent)}
+.si .tag{margin-left:auto}
+.side-foot{margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.iconbtn:hover{background:var(--wash)}
+.toplogo{display:none;margin:0}.toplogo.show{display:flex}
+.scrim{display:none}
+@media (min-width:861px){.side.collapsed{width:64px}.side.collapsed .lbl,.side.collapsed .si .tag{display:none}.side.collapsed .grp{height:1px;background:var(--line);padding:0;margin:10px 8px}.side.collapsed .si{justify-content:center}.side.collapsed .logo{justify-content:center}}
+@media (max-width:860px){.side{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .18s;width:248px}.side.open{transform:none;box-shadow:var(--shadow)}.scrim.on{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45}.toplogo{display:flex}}
+.cols2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start}
+.prow{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:8px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.prow:last-of-type{border-bottom:0}
+.prow input{width:100%}
+.irow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.irow:last-of-type{border-bottom:0}
+.tog{display:flex;gap:8px;align-items:center;padding:6px 0}
+.tog input{width:16px;height:16px}
+.attn{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.attn:last-child{border-bottom:0}
+.link{border:0;background:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer;text-align:left}
+.link:hover{text-decoration:underline}
 </style>
 
+<div class="shell">
+<aside id="side" class="side" hidden></aside>
+<div class="scrim" id="scrim" data-act="sidemob"></div>
+<div class="main">
 <div class="topbar"><div class="topbar-in" id="topbar"></div></div>
 <div class="wrap">
-  <div class="proto">Prototype with sample data. Brand names, suppliers, orders and numbers are made up. Nothing here is connected to Shopify yet.</div>
+  <div class="proto">Prototype with sample data. Brand names, suppliers, orders and numbers are made up. Nothing here is connected to Shopify or the Partner Success Portal yet.</div>
   <div id="app"></div>
+</div>
+</div>
 </div>
 <div id="tip"></div>
 <div id="layer"></div>
@@ -147,6 +183,13 @@ const PEOPLE={ps:['Dana Whitfield','Marco Ibarra','Tess Okafor'],meta:['Priya Na
 const NOUN={Goods:['Tote','Mug','Candle','Blanket','Planter','Tray','Journal'],Home:['Throw','Vase','Lamp','Rug','Cushion','Basket'],Supply:['Kit','Organizer','Bin','Caddy','Rack'],Studio:['Print','Frame','Brush Set','Palette','Canvas'],Labs:['Serum','Cleanser','Mist','Balm'],Outdoors:['Pack','Bottle','Tent Stake Set','Camp Mug','Hammock'],Kitchen:['Skillet','Knife','Board','Whisk','Colander'],'Pet Co':['Leash','Bed','Chew Toy','Bowl','Harness'],Wear:['Tee','Hoodie','Beanie','Socks','Jacket'],Beauty:['Lip Tint','Palette','Brush','Toner'],Tools:['Driver Set','Level','Tape','Clamp'],Kids:['Puzzle','Backpack','Blocks','Bib','Cup']};
 const FIRST=['Maya','Noah','Ivy','Omar','Lena','Theo','Zoe','Ravi','Cleo','Hugo','Nia','Finn'];
 const D0=new Date(2026,8,12);
+const TODAY=new Date(2026,9,12);
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const CADENCES=[];['Weekly','Bi-weekly (Week A)','Bi-weekly (Week B)'].forEach(c=>['Monday','Tuesday','Wednesday','Thursday','Friday'].forEach(d=>CADENCES.push(c+' - '+d)));
+const LAST=['Alvarez','Brooks','Chen','Dubois','Eriksen','Fofana','Grant','Haddad','Ito','Jensen','Kaur','Lopez'];
+const OPEN_ACTIONS=['Send Q4 plan','Share creative results','Review return reasons','Confirm BFCM inventory','Schedule renewal call'];
+const ISSUE_TEXT=['Meta payment method declined','Google Merchant Center disapproved products','Supplier delays on restock','Pixel not firing on checkout','Creative refresh needed','Zendesk backlog over 48 hours'];
+const CREATIVE=['Mira Solis','Dev Patel','Hana Kim'], UGC=['Cory Blake','Isla Reyes','Noor Haddad'];
 const dayLabel=i=>new Date(2026,8,12+i).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
 const brands=[];
@@ -164,7 +207,7 @@ for(let i=0;i<72;i++){
     email:{rev:revenue*(.08+R()*.18),sends:ri(8,40),owner:pick(PEOPLE.email),list:ri(4,90)*1000},
     syncMin:R()<.08?ri(300,2600):ri(1,22),
     owner:pick(PEOPLE.ps),renewal:new Date(2027,ri(0,11),ri(1,28)),currency:R()<.8?'USD':pick(['CAD','GBP','EUR']),
-    lastCheckin:ri(1,48),skus:[],orderRows:[],notes:[],tasks:[]});
+    skus:[],orderRows:[],cadence:pick(CADENCES),contacts:[],issues:[],notes:'',zendesk:'',gslack:'',mslack:'',creative:pick(CREATIVE),ugc:pick(UGC),uploads:'',accountDown:R()<.07,googleOn:R()<.92,metaOn:R()<.92});
 }
 const rankSorted=[...brands].sort((a,b)=>b.revenue-a.revenue);
 rankSorted.forEach((b,i)=>b.tier=i<12?'A':i<40?'B':'C');
@@ -186,11 +229,16 @@ brands.forEach(b=>{
   for(let k=0;k<8;k++){const s=pick(st);b.orderRows.push({no:1000+ri(100,9000),cust:pick(FIRST)+' '+String.fromCharCode(65+ri(0,25))+'.',total:Math.round(b.aov*(.6+R()*1.2)),status:s,days:k*ri(1,2)});}
   b.stockout=b.skus.filter(s=>s.onHand===0).length;
   b.lowCover=b.skus.filter(s=>s.onHand>0&&s.onHand/s.vel<10).length;
-  const score=(b.returnRate>.1?2:b.returnRate>.075?1:0)+(b.stockout>1?2:b.stockout?1:0)+(b.delta<-.15?2:b.delta<0?1:0)+(b.syncMin>120?1:0);
-  b.health=score>=4?'red':score>=2?'yellow':'green';
-  b.notes=[{who:b.owner,when:b.lastCheckin+' days ago',text:pick(['Walked through Q4 plan. They want to add two new SKUs before BFCM.','Asked about faster return handling. Showed the supplier portal flow.','Flagged slow supplier response on cancellations. Escalated to ops.','Positive call. Planning a bundle launch in November.'])}];
-  b.tasks=[{t:pick(['Confirm BFCM inventory plan','Send Q3 performance recap','Review return reasons with supplier','Schedule contract renewal call']),done:false},{t:'Check in on ad creative refresh',done:R()<.4}];
-  b.nextStep=b.tasks[0].t;
+  Object.defineProperty(b,'health',{get:()=>brandStatus(b)});
+  const nc=ri(1,3);
+  for(let k=0;k<nc;k++){const fn=pick(FIRST), ln=pick(LAST);b.contacts.push({name:fn+' '+ln,email:(fn+'.'+ln).toLowerCase()+'@'+b.slug.replace(/-/g,'')+'.com',last:new Date(2026,9,12-ri(0,13)),actions:R()<.4?pick(OPEN_ACTIONS):''});}
+  const ni=R()<.45?0:ri(1,3);
+  for(let k=0;k<ni;k++)b.issues.push({text:pick(ISSUE_TEXT),status:pick(['Pending','In Progress','Resolved']),created:new Date(2026,9,12-ri(1,25))});
+  if(R()<.55)b.notes=pick(['Wants two new SKUs before BFCM.','Asked about faster return handling.','Slow supplier response on cancellations. Escalated to ops.','Planning a bundle launch in November.']);
+  if(R()<.7)b.zendesk='https://support.example.com/brand/'+b.slug;
+  if(R()<.8)b.gslack='https://slack.example.com/archive/g-'+b.slug;
+  if(R()<.8)b.mslack='https://slack.example.com/archive/m-'+b.slug;
+  if(R()<.6)b.uploads='https://drive.example.com/folders/'+b.slug;
 });
 const brandById=id=>brands[id];
 
@@ -211,7 +259,8 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'k':'$'+Math.round(n);
@@ -223,7 +272,7 @@ const pct=(n,d=1)=>(n*100).toFixed(d)+'%';
 const dpct=n=>`<span class="${n>=0?'up':'down'}">${n>=0?'▲':'▼'} ${Math.abs(n*100).toFixed(0)}%</span>`;
 const ago=h=>h<1?Math.max(1,Math.round(h*60))+' min ago':h<48?Math.round(h)+' h ago':Math.round(h/24)+' days ago';
 const typeLabel=(t,b)=>t==='order'?(b&&b.mode==='warehouse'?'Replenishment order':'Order'):t==='return'?'Return':'Cancellation';
-const HEALTH={green:['good','✓','Healthy'],yellow:['warn','!','Watch'],red:['crit','✕','At risk']};
+const HEALTH={green:['good','✓','Healthy'],yellow:['warn','!','Needs attention'],red:['crit','✕','Account down']};
 const hpill=h=>{const x=HEALTH[h];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
 const isOverdue=r=>r.status==='notified'&&r.hoursAgo>=24;
 const RS={notified:['idle','○','Awaiting supplier'],ack:['info','◐','In progress'],done:['good','✓','Completed'],declined:['crit','!','Cannot cancel'],overdue:['crit','!','Overdue']};
@@ -254,14 +303,32 @@ function spark(vals){
 }
 
 /* ---------- top bar ---------- */
+const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
+const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log'};
 function renderTop(){
   const ops=S.role==='ops';
-  $('#topbar').innerHTML=`<div class="logo"><i></i>Brand Hub</div>
-  ${ops?`<nav aria-label="Main"><button data-act="nav" data-p="portfolio" ${['portfolio','brand'].includes(S.page)?'aria-current="page"':''}>Brands</button><button data-act="nav" data-p="requests" ${S.page==='requests'?'aria-current="page"':''}>Supplier requests${openReqs0()?` <span class="tag">${openReqs0()}</span>`:''}</button><button data-act="nav" data-p="inventory" ${S.page==='inventory'?'aria-current="page"':''}>Inventory</button></nav>`:`<span class="small">Supplier portal</span>`}
+  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i>Brand Hub</div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
   <span class="spacer"></span>
   ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
-  <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Ops team</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
+  <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Team view</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
 }
+function renderSide(){
+  const el=$('#side'), ops=S.role==='ops';
+  el.hidden=!ops;$('#scrim').className='scrim'+(ops&&S.sideOpen?' on':'');
+  if(!ops)return;
+  el.className='side'+(S.side?' collapsed':'')+(S.sideOpen?' open':'');
+  const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length;
+  const it=(p,l,i,badge)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}" ${cur===p?'aria-current="page"':''}>${ico(i)}<span class="lbl">${l}</span>${badge?`<span class="tag">${badge}</span>`:''}</button>`;
+  el.innerHTML=`<div class="logo"><i></i><span class="lbl">Brand Hub</span></div>
+  ${it('portfolio','Brands','grid')}
+  <div class="grp"><span class="lbl">Ops team</span></div>
+  ${it('opsHome','Ops overview','pulse')}${it('requests','Supplier requests','truck',ro)}${it('inventory','Inventory','box')}
+  <div class="grp"><span class="lbl">Partner success</span></div>
+  ${it('psHome','PS overview','users')}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
+  <div class="side-foot"><button class="si" data-act="side" title="${S.side?'Expand':'Collapse'} sidebar">${ico(S.side?'right':'left')}<span class="lbl">Collapse</span></button></div>`;
+}
+
 const openReqs0=()=>requests.filter(openReqs).length;
 
 /* ---------- portfolio ---------- */
@@ -302,14 +369,14 @@ function renderPortfolio(){
   </div>
   <div class="grid two" style="margin-bottom:20px">
     <div class="card"><h2>Portfolio revenue per day</h2><p class="small" style="margin:2px 0 10px">Sum across all ${brands.length} stores. Hover for a day.</p>${lineChart(daily,money,dayLabel)}</div>
-    <div class="card"><h2>Brand health</h2><p class="small" style="margin:2px 0 10px">Set by partner success. Starts from returns, stock and sales trend.</p>
+    <div class="card"><h2>Brand health</h2><p class="small" style="margin:2px 0 10px">Worked out from the Partner Success data: account down, an ad channel off, or an open issue.</p>
       <div class="list"><div><span>${hpill('red')}</span><b>${red}</b></div><div><span>${hpill('yellow')}</span><b>${yel}</b></div><div><span>${hpill('green')}</span><b>${brands.length-red-yel}</b></div></div></div>
   </div>
   <div class="filters">
     <input type="search" id="q" placeholder="Search brands" aria-label="Search brands" value="${esc(S.q)}">
     <select id="fmode" aria-label="Fulfillment mode"><option value="">All fulfillment</option><option value="dropship" ${S.mode==='dropship'?'selected':''}>Dropship</option><option value="warehouse" ${S.mode==='warehouse'?'selected':''}>Warehouse</option></select>
     <select id="fsup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplier==s.id&&S.supplier!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
-    <select id="fhealth" aria-label="Health"><option value="">All health</option><option value="red" ${S.health==='red'?'selected':''}>At risk</option><option value="yellow" ${S.health==='yellow'?'selected':''}>Watch</option><option value="green" ${S.health==='green'?'selected':''}>Healthy</option></select>
+    <select id="fhealth" aria-label="Health"><option value="">All health</option><option value="red" ${S.health==='red'?'selected':''}>Account down</option><option value="yellow" ${S.health==='yellow'?'selected':''}>Needs attention</option><option value="green" ${S.health==='green'?'selected':''}>Healthy</option></select>
   </div>
   <div id="tbl">${brandTable()}</div>`;
 }
@@ -334,7 +401,7 @@ function tabOverview(b){
   <div class="card"><h2>Brand profile</h2><dl style="margin-top:10px"><dt>Shopify store</dt><dd class="mono">${esc(b.slug)}.myshopify.com</dd><dt>Vendor value</dt><dd class="mono">${esc(b.name)}</dd><dt>Supplier</dt><dd>${esc(supName(b.supplier))}</dd><dt>Fulfillment</dt><dd>${b.mode==='dropship'?'Dropship: supplier ships to customer':'Supplier ships to our warehouse'}</dd><dt>Partner success</dt><dd>${esc(b.owner)}</dd><dt>Currency</dt><dd>${b.currency}</dd><dt>Contract renews</dt><dd>${b.renewal.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</dd><dt>Last sync</dt><dd>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:b.syncMin+' min ago'}</dd></dl></div></div>
   <div class="grid three"><div class="card"><h2>Open supplier requests</h2>${rq.length?`<div class="list">${rq.map(r=>`<div><span><b>${r.id}</b> <span class="small">${typeLabel(r.type,b)} · #${r.orderNo}</span></span>${spill(r)}</div>`).join('')}</div>`:'<p class="small">Nothing open.</p>'}</div>
   <div class="card"><h2>Stock alerts</h2>${b.skus.filter(s=>stockState(s)[0]!=='good').length?`<div class="list">${b.skus.filter(s=>stockState(s)[0]!=='good').map(s=>{const x=stockState(s);return `<div><span>${esc(s.name)}<div class="small mono">${s.sku}</div></span><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></div>`}).join('')}</div>`:'<p class="small">All SKUs healthy.</p>'}</div>
-  <div class="card"><h2>Partner success</h2><p class="small" style="margin:6px 0">Last check-in ${b.lastCheckin} days ago by ${esc(b.owner)}</p><p style="margin:0"><b>Next step:</b> ${esc(b.nextStep)}</p></div></div>`;
+  <div class="card"><h2>Partner success</h2><p class="small" style="margin:6px 0">${esc(b.owner)} · ${esc(b.cadence)}</p><p style="margin:0 0 6px"><b>Next update due</b></p>${duePill(dueOf(b))}<p class="small" style="margin:8px 0 0">${issueOpen(b)?issueOpen(b)+' open issue'+(issueOpen(b)>1?'s':''):'No open issues'}</p></div></div>`;
 }
 function invTable(skus,showBrand){
   return `<div class="tablewrap"><table><thead><tr>${showBrand?'<th>Brand</th>':''}<th>Product</th><th>SKU</th><th>Held at</th><th class="num">On hand</th><th class="num">Incoming</th><th class="num">Sells/day</th><th class="num">Value at cost</th><th>Days of cover</th><th>Status</th></tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${fmtVel(s.vel)}</td><td class="num">${landed(s)==null?'<span class="small">No cost</span>':money0(s.onHand*landed(s))}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
@@ -377,12 +444,138 @@ function tabMarketing(b){
   ${b.stockout?`<p class="small" style="margin:12px 0 0"><span class="pill warn"><b>!</b>${b.stockout} SKU${b.stockout>1?'s':''} out of stock</span> Marketing teams can pause ads on these products.</p>`:''}</div>
   <p class="small" style="margin-top:10px">In the real build, spend and revenue come from the Meta Ads, Google Ads and email platform APIs, matched to this brand's ad accounts.</p>`;
 }
+/* ---------- partner success: schedule, status, activity (mirrors the Partner Success Portal) ---------- */
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+function nextScheduled(after,label){
+  const m=/^(Weekly|Bi-weekly \(Week ([AB])\)) - (\w+)$/.exec(label||'');if(!m)return null;
+  const wd=DAYS.indexOf(m[3]);
+  for(let i=1;i<=30;i++){const d=new Date(after.getFullYear(),after.getMonth(),after.getDate()+i);if(d.getDay()!==wd)continue;if(m[2]&&((m[2]==='A')!==(isoWeek(d)%2===1)))continue;return d}
+  return null;
+}
+const dueOf=b=>b.contacts.reduce((a,c)=>{const d=nextScheduled(c.last,b.cadence);return d&&(!a||d<a)?d:a},null);
+const lastContact=b=>b.contacts.reduce((a,c)=>!a||c.last>a?c.last:a,null);
+const issueOpen=b=>b.issues.filter(i=>i.status!=='Resolved').length;
+function brandStatus(b){if(b.accountDown)return 'red';if(!b.googleOn||!b.metaOn||issueOpen(b)>0)return 'yellow';return 'green'}
+const fdate=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Not set';
+const isoDate=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function urg(d){if(!d)return 'unset';const diff=Math.round((d-TODAY)/864e5);return diff<=-3?'overdue':diff<=2?'soon':'ok'}
+const URG={overdue:['crit','!','Overdue'],soon:['warn','!','Due soon'],ok:['good','✓','On track'],unset:['idle','○','Not set']};
+const duePill=d=>{const x=URG[urg(d)];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${fdate(d)} · ${x[2]}</span>`};
+const safeUrl=u=>/^https?:\/\//.test(u||'');
+const activity=[];
+function logAct(b,text){activity.unshift({at:Date.now(),who:'You',brand:b.name,id:b.id,text})}
+(function(){const T=['Added an issue','Resolved an issue','Marked Meta Ads running','Marked Google Ads off','Changed cadence','Logged contact with a partner','Updated manual notes','Reassigned the brand'];for(let i=0;i<16;i++){const b=pick(brands);activity.push({at:Date.now()-ri(1,300)*36e5,who:pick(PEOPLE.ps),brand:b.name,id:b.id,text:pick(T)})}activity.sort((a,c)=>c.at-a.at)})();
+
+function psEdit(t){
+  const b=brandById(+t.dataset.id), f=t.dataset.ps, ci=+t.dataset.ci, ii=+t.dataset.ii, v=t.type==='checkbox'?t.checked:t.value.trim();
+  let msg='';
+  if(f==='owner'){b.owner=v;msg='Reassigned to '+v}
+  else if(f==='cadence'){b.cadence=v;msg='Cadence set to '+v}
+  else if(f==='gassignee'){b.google.owner=v;msg='Google Ads assignee set to '+v}
+  else if(f==='massignee'){b.meta.owner=v;msg='Meta Ads assignee set to '+v}
+  else if(['gslack','mslack','creative','ugc','uploads','zendesk'].includes(f)){b[f]=v;msg='Updated '+({gslack:'Google Ads Slack channel',mslack:'Meta Ads Slack channel',creative:'Creative Director',ugc:'UGC Manager',uploads:'uploads link',zendesk:'Zendesk link'})[f]}
+  else if(f==='notes'){b.notes=v;msg='Updated manual notes'}
+  else if(f==='accountDown'){b.accountDown=v;msg=v?'Marked account down':'Marked account back up'}
+  else if(f==='googleOn'){b.googleOn=v;msg=v?'Marked Google Ads running':'Marked Google Ads off'}
+  else if(f==='metaOn'){b.metaOn=v;msg=v?'Marked Meta Ads running':'Marked Meta Ads off'}
+  else if(f==='cname'){b.contacts[ci].name=v;msg='Renamed a partner'}
+  else if(f==='cemail'){b.contacts[ci].email=v;msg='Updated a partner email'}
+  else if(f==='cactions'){b.contacts[ci].actions=v;msg='Updated open actions for '+b.contacts[ci].name}
+  else if(f==='clast'){const p=v.split('-').map(Number);if(p.length!==3||p.some(isNaN))return;b.contacts[ci].last=new Date(p[0],p[1]-1,p[2]);msg='Logged contact with '+b.contacts[ci].name}
+  else if(f==='istatus'){b.issues[ii].status=v;msg='Set issue to '+v}
+  logAct(b,msg);render();toast(msg)
+}
+
+/* ---------- brand drill-down: partner success tab ---------- */
 function tabPS(b){
-  return `<div class="grid two"><div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2>Check-in notes</h2></div>
-  <div class="field"><label for="psnote">Add a note</label><textarea id="psnote" rows="3" placeholder="What did you discuss? What's next?"></textarea></div><button class="btn primary" data-act="addnote" data-id="${b.id}">Save note</button>
-  <ul class="timeline" style="margin-top:18px">${b.notes.map(n=>`<li><div><div class="small"><b>${esc(n.who)}</b> · ${esc(n.when)}</div><div>${esc(n.text)}</div></div></li>`).join('')}</ul></div>
-  <div class="grid" style="align-content:start"><div class="card"><h2>Health</h2><div class="field" style="margin-top:10px"><label for="hsel">Set manually</label><select id="hsel" data-id="${b.id}"><option value="green" ${b.health==='green'?'selected':''}>Healthy</option><option value="yellow" ${b.health==='yellow'?'selected':''}>Watch</option><option value="red" ${b.health==='red'?'selected':''}>At risk</option></select></div><p class="small" style="margin:0">Last check-in ${b.lastCheckin} days ago</p></div>
-  <div class="card"><h2>Tasks</h2><div class="list" style="margin-top:6px">${b.tasks.map((t,i)=>`<div style="justify-content:flex-start"><input type="checkbox" id="t${i}" data-act="task" data-id="${b.id}" data-i="${i}" ${t.done?'checked':''}><label for="t${i}" style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.t)}</label></div>`).join('')}</div></div></div></div>`;
+  const due=dueOf(b), last=lastContact(b), P=(f,i)=>`data-ps="${f}" data-id="${b.id}"${i||''}`;
+  const sel=(f,val,opts,label)=>`<select id="psf-${f}" ${P(f)} style="width:100%" aria-label="${label}">${opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const txt=(f,val,label,ph)=>`<input type="text" id="psf-${f}" ${P(f)} value="${esc(val||'')}" placeholder="${ph||'Not set'}" aria-label="${label}" style="width:100%">`;
+  const fld=(f,label,control,extra)=>`<div class="field"><label for="psf-${f}">${label}</label>${control}${extra||''}</div>`;
+  const opn=u=>safeUrl(u)?`<a class="small" href="${esc(u)}" target="_blank" rel="noopener">Open link ↗</a>`:'';
+  const tog=(f,val,label)=>`<label class="tog"><input type="checkbox" ${P(f)} ${val?'checked':''}>${label}</label>`;
+  const withCur=(arr,v)=>arr.includes(v)?arr:[v,...arr];
+  const stat=b.accountDown?'Account is down.':(!b.googleOn||!b.metaOn)?'An ad channel is off.':issueOpen(b)?'There are open issues.':'No problems flagged.';
+  return `<div class="cols2"><div class="grid" style="align-content:start">
+  <div class="card"><h2>Overview</h2><div style="margin-top:12px">
+    ${fld('owner','Assignee',sel('owner',b.owner,withCur(PEOPLE.ps,b.owner),'Assignee'))}
+    ${fld('cadence','Cadence',sel('cadence',b.cadence,CADENCES,'Cadence'))}
+    <dl><dt>Last contacted</dt><dd>${last?fdate(last):'–'}</dd><dt>Next update due</dt><dd>${duePill(due)}</dd></dl></div></div>
+  <div class="card"><h2>Partners</h2><p class="small" style="margin:2px 0 6px">${b.contacts.length} partner${b.contacts.length===1?'':'s'} tracked</p>
+    ${b.contacts.length?b.contacts.map((c,i)=>`<div class="prow"><input type="text" ${P('cname',' data-ci="'+i+'"')} value="${esc(c.name)}" aria-label="Partner name"><input type="text" ${P('cemail',' data-ci="'+i+'"')} value="${esc(c.email)}" aria-label="Partner email"><input type="date" ${P('clast',' data-ci="'+i+'"')} value="${isoDate(c.last)}" aria-label="Last contacted"><input type="text" ${P('cactions',' data-ci="'+i+'"')} value="${esc(c.actions)}" placeholder="Open actions" aria-label="Open actions"><button class="btn sm" data-act="rmpartner" data-id="${b.id}" data-ci="${i}">Remove</button></div>`).join(''):'<p class="small">No partners on file yet.</p>'}
+    <button class="btn primary" data-act="addpartner" data-id="${b.id}" style="margin-top:10px">+ Add partner</button></div>
+  <div class="card"><h2>Issues</h2><p class="small" style="margin:2px 0 6px">${issueOpen(b)} open</p>
+    ${b.issues.length?b.issues.map((x,i)=>`<div class="irow"><select ${P('istatus',' data-ii="'+i+'"')} aria-label="Issue status"><option ${x.status==='Pending'?'selected':''}>Pending</option><option ${x.status==='In Progress'?'selected':''}>In Progress</option><option ${x.status==='Resolved'?'selected':''}>Resolved</option></select><div style="flex:1;min-width:150px">${esc(x.text)}<div class="small">${fdate(x.created)}</div></div><button class="btn sm" data-act="rmissue" data-id="${b.id}" data-ii="${i}">Remove</button></div>`).join(''):'<p class="small">No issues logged for this brand yet.</p>'}
+    <button class="btn primary" data-act="addissue" data-id="${b.id}" style="margin-top:10px">+ Add issue</button></div></div>
+  <div class="grid" style="align-content:start">
+  <div class="card"><h2>Ad ops</h2><div style="margin-top:12px">
+    ${fld('gassignee','Google Ads assignee',sel('gassignee',b.google.owner,withCur(PEOPLE.google,b.google.owner),'Google Ads assignee'))}
+    ${fld('gslack','Google Ads Slack channel',txt('gslack',b.gslack,'Google Ads Slack channel','https://…'),opn(b.gslack))}
+    ${fld('massignee','Meta Ads assignee',sel('massignee',b.meta.owner,withCur(PEOPLE.meta,b.meta.owner),'Meta Ads assignee'))}
+    ${fld('mslack','Meta Ads Slack channel',txt('mslack',b.mslack,'Meta Ads Slack channel','https://…'),opn(b.mslack))}
+    ${fld('creative','Creative director',txt('creative',b.creative,'Creative director'))}
+    ${fld('ugc','UGC manager',txt('ugc',b.ugc,'UGC manager'))}
+    ${fld('uploads','Uploads link',txt('uploads',b.uploads,'Uploads link','https://…'),opn(b.uploads))}</div></div>
+  <div class="card"><h2>Notes & links</h2><div style="margin-top:12px">
+    ${fld('zendesk','Zendesk link',txt('zendesk',b.zendesk,'Zendesk link','https://…'),opn(b.zendesk))}
+    <div class="field"><label for="psf-notes">Manual notes</label><textarea id="psf-notes" rows="4" ${P('notes')} placeholder="Add a note…">${esc(b.notes)}</textarea></div>
+    <div style="border-top:1px solid var(--line);padding-top:8px">${tog('accountDown',b.accountDown,'Account down')}${tog('googleOn',b.googleOn,'Google Ads running')}${tog('metaOn',b.metaOn,'Meta Ads running')}</div>
+    <p class="small" style="margin:8px 0 0">${hpill(b.health)} ${stat} Account down is red. An ad channel off or an open issue is yellow.</p></div></div></div></div>`;
+}
+
+/* ---------- ops workspace ---------- */
+function renderOpsHome(){
+  const od=requests.filter(isOverdue), aw=requests.filter(r=>r.status==='notified'&&!isOverdue(r)), ip=requests.filter(r=>r.status==='ack');
+  const outs=[];brands.forEach(b=>b.skus.forEach(s=>{if(s.onHand===0)outs.push({b,s})}));outs.sort((x,y)=>y.b.revenue-x.b.revenue);
+  const stale=brands.filter(b=>b.syncMin>120).sort((a,b)=>b.syncMin-a.syncMin);
+  return `<div class="head"><div><h1>Ops workspace</h1><p class="sub">What needs action today: late supplier requests, stock-outs and stores that stopped syncing.</p></div><div class="row"><button class="btn" data-act="nav" data-p="inventory">Open inventory</button><button class="btn primary" data-act="newreq">+ New supplier request</button></div></div>
+  <div class="grid kpis">
+   <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Overdue requests</h3><div class="v ${od.length?'down':''}">${od.length}</div><div class="d">No reply in 24 hours</div></button></div>
+   <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Awaiting supplier</h3><div class="v">${aw.length}</div><div class="d">${ip.length} in progress</div></button></div>
+   <div class="card kpi"><button data-act="nav" data-p="inventory"><h3>Out-of-stock SKUs</h3><div class="v">${outs.length}</div><div class="d">across ${new Set(outs.map(o=>o.b.id)).size} brands</div></button></div>
+   <div class="card kpi"><h3>Stores not syncing</h3><div class="v ${stale.length?'down':''}">${stale.length}</div><div class="d">of ${brands.length} connected</div></div></div>
+  <div class="cols2">
+   <div class="card"><h2>Overdue supplier requests</h2>${od.length?`<div class="list" style="margin-top:6px">${od.map(r=>{const b=brandById(r.brandId);return `<div><span><button class="link" data-act="openreq" data-id="${r.id}">${r.id}</button> <span class="small">${typeLabel(r.type,b)} · ${esc(b.name)}<br>${esc(supName(r.supplier))} · ${ago(r.hoursAgo)}</span></span><button class="btn sm" data-act="remindq" data-id="${r.id}">Send reminder</button></div>`}).join('')}</div>`:'<p class="small">Nothing overdue.</p>'}</div>
+   <div class="card"><h2>Out of stock, biggest brands first</h2><div class="list" style="margin-top:6px">${outs.slice(0,8).map(o=>`<div><span><button class="link" data-act="brand" data-id="${o.b.id}">${esc(o.b.name)}</button><br><span class="small">${esc(o.s.name)} · held by ${esc(o.s.loc)}</span></span><button class="btn sm" data-act="newreq" data-id="${o.b.id}">Request restock</button></div>`).join('')}</div></div>
+   <div class="card"><h2>Stores not syncing</h2>${stale.length?`<div class="list" style="margin-top:6px">${stale.map(b=>`<div><span><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><br><span class="small mono">${esc(b.slug)}.myshopify.com · last sync ${Math.round(b.syncMin/60)} h ago</span></span><button class="btn sm" data-act="reconnect">Send reconnect link</button></div>`).join('')}</div>`:'<p class="small">Every store is syncing.</p>'}</div></div>`;
+}
+
+/* ---------- partner success workspace ---------- */
+function renderPsHome(){
+  const st={red:[],yellow:[],green:[]};brands.forEach(b=>st[b.health].push(b));
+  const overdue=brands.filter(b=>urg(dueOf(b))==='overdue').length, partners=brands.reduce((a,b)=>a+b.contacts.length,0), openI=brands.reduce((a,b)=>a+issueOpen(b),0);
+  const attn=(list)=>list.length?list.slice(0,8).map(b=>`<div class="attn"><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><span class="small">${esc(b.owner)}${issueOpen(b)?' · '+issueOpen(b)+' open issue'+(issueOpen(b)>1?'s':''):''}</span></div>`).join('')+(list.length>8?`<p class="small" style="margin:8px 0 0">+ ${list.length-8} more. Filter the Brands list by health.</p>`:''):'<p class="small">None. Nice work.</p>';
+  const due=brands.map(b=>({b,d:dueOf(b)})).filter(x=>x.d).sort((a,c)=>a.d-c.d).slice(0,12);
+  return `<div class="head"><div><h1>Partner success workspace</h1><p class="sub">Account health and check-ins across all ${brands.length} brands. Same fields as the Partner Success Portal.</p></div></div>
+  <div class="grid kpis">
+   <div class="card kpi"><h3>Total brands</h3><div class="v">${brands.length}</div><div class="d">${partners} partners tracked</div></div>
+   <div class="card kpi"><h3>Accounts down</h3><div class="v ${st.red.length?'down':''}">${st.red.length}</div><div class="d">Red</div></div>
+   <div class="card kpi"><h3>Needs attention</h3><div class="v">${st.yellow.length}</div><div class="d">${openI} open issues</div></div>
+   <div class="card kpi"><h3>Healthy</h3><div class="v">${st.green.length}</div><div class="d">Green</div></div>
+   <div class="card kpi"><button data-act="nav" data-p="tracker"><h3>Overdue updates</h3><div class="v ${overdue?'down':''}">${overdue}</div><div class="d">3+ days past cadence</div></button></div></div>
+  <div class="cols2" style="margin-bottom:12px">
+   <div class="card"><h2>${hpill('red')}</h2><div style="margin-top:8px">${attn(st.red)}</div></div>
+   <div class="card"><h2>${hpill('yellow')}</h2><div style="margin-top:8px">${attn(st.yellow)}</div></div>
+   <div class="card"><h2>Quick note</h2><p class="small" style="margin:2px 0 10px">Saves to the brand's manual notes and the activity log.</p>
+    <div class="field"><label for="qnb">Brand</label><select id="qnb">${[...brands].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></div>
+    <div class="field"><label for="qnt">Note</label><textarea id="qnt" rows="3" placeholder="What did you discuss? What's next?"></textarea></div><button class="btn primary" data-act="quicknote">Save note</button></div></div>
+  <h2 style="margin:20px 0 10px">Next check-ins due</h2>
+  <div class="tablewrap"><table><thead><tr><th>Next due</th><th>Cadence</th><th>Brand</th><th>Assignee</th><th class="num">Open issues</th></tr></thead><tbody>${due.map(x=>`<tr data-act="brand" data-id="${x.b.id}" tabindex="0"><td>${duePill(x.d)}</td><td>${esc(x.b.cadence)}</td><td class="name">${esc(x.b.name)}</td><td>${esc(x.b.owner)}</td><td class="num">${issueOpen(x.b)||'–'}</td></tr>`).join('')}</tbody></table></div>
+  <p class="small" style="margin-top:8px"><button class="link" data-act="nav" data-p="tracker">See all in the Update tracker →</button></p>`;
+}
+function renderTracker(){
+  let rows=[];brands.forEach(b=>{if(S.tAss&&b.owner!==S.tAss)return;b.contacts.forEach((c,ci)=>rows.push({b,c,ci,d:nextScheduled(c.last,b.cadence)}))});
+  rows.sort((x,y)=>(x.d||0)-(y.d||0));
+  const shown=rows.slice(0,S.tShow);
+  return `<div class="head"><div><h1>Update tracker</h1><p class="sub">One row per partner. Change a last-contacted date or open action and the next due date updates.</p></div>
+   <div class="field" style="margin:0"><label for="tass">Assignee</label><select id="tass"><option value="">Everyone</option>${PEOPLE.ps.map(a=>`<option ${S.tAss===a?'selected':''}>${esc(a)}</option>`).join('')}</select></div></div>
+  <div class="tablewrap"><table style="min-width:980px"><thead><tr><th>Brand</th><th>Partner</th><th>Cadence</th><th>Last contacted</th><th>Open actions</th><th>Next due</th><th></th></tr></thead><tbody>
+  ${shown.map(r=>`<tr><td><button class="link" data-act="brand" data-id="${r.b.id}">${esc(r.b.name)}</button><div class="small">${esc(r.b.owner)}</div></td><td>${esc(r.c.name)}<div class="small">${esc(r.c.email)}</div></td><td class="small">${esc(r.b.cadence)}</td><td><input type="date" data-ps="clast" data-id="${r.b.id}" data-ci="${r.ci}" value="${isoDate(r.c.last)}" aria-label="Last contacted, ${esc(r.c.name)}"></td><td><input type="text" data-ps="cactions" data-id="${r.b.id}" data-ci="${r.ci}" value="${esc(r.c.actions)}" placeholder="None" aria-label="Open actions, ${esc(r.c.name)}" style="width:170px"></td><td>${duePill(r.d)}</td><td><button class="btn sm" data-act="contacted" data-id="${r.b.id}" data-ci="${r.ci}">Contacted today</button></td></tr>`).join('')}</tbody></table>${rows.length?'':'<div class="empty">No partners for this assignee.</div>'}</div>
+  ${rows.length>S.tShow?`<div style="text-align:center;margin-top:12px"><button class="btn" data-act="trackmore">Show more (${rows.length-S.tShow} left)</button></div>`:''}`;
+}
+function renderActivity(){
+  return `<div class="head"><div><h1>Activity log</h1><p class="sub">Most recent changes to partner success data, newest first.</p></div></div>
+  <div class="card"><div class="list">${activity.slice(0,100).map(a=>`<div><span><b>${esc(a.who)}</b> · ${esc(a.text)}<br><button class="link" data-act="brand" data-id="${a.id}">${esc(a.brand)}</button></span><span class="small">${ago((Date.now()-a.at)/36e5)}</span></div>`).join('')}</div></div>`;
 }
 
 /* ---------- ops requests & inventory ---------- */
@@ -474,9 +667,9 @@ function fillNewReq(){
 /* ---------- actions ---------- */
 function updateReq(id,fn,evt,sys){const r=requests.find(x=>x.id===id);fn(r);if(evt)r.events.unshift({t:evt,ago:0,sys});}
 const ACTIONS={
-  nav:e=>{S.page=e.dataset.p;if(S.page==='portfolio')S.brandId=null;render();window.scrollTo(0,0)},
+  nav:e=>{S.page=e.dataset.p;S.sideOpen=false;if(S.page==='portfolio')S.brandId=null;render();window.scrollTo(0,0)},
   role:e=>{S.role=e.dataset.r;if(S.role==='ops'&&S.page==='brand')S.page='portfolio';render()},
-  brand:e=>{S.brandId=+e.dataset.id;S.page='brand';S.tab='overview';render();window.scrollTo(0,0)},
+  brand:e=>{S.brandId=+e.dataset.id;S.page='brand';S.tab='overview';S.sideOpen=false;render();window.scrollTo(0,0)},
   tab:e=>{S.tab=e.dataset.t;render()},
   sort:e=>{const k=e.dataset.k;S.dir=S.sort===k?-S.dir:(k==='name'||k==='health'?1:-1);S.sort=k;$('#tbl').innerHTML=brandTable()},
   more:()=>{S.show+=20;$('#tbl').innerHTML=brandTable()},
@@ -486,8 +679,29 @@ const ACTIONS={
   rq:e=>{S.rq=e.dataset.k;render()},
   newreq:e=>newReqModal(e.dataset.id!=null?+e.dataset.id:null,e.dataset.no),
   remind:e=>{updateReq(e.dataset.id,()=>{},'Reminder sent by WhatsApp',false);reqDrawer(e.dataset.id);toast('Reminder sent by WhatsApp')},
-  addnote:e=>{const v=$('#psnote').value.trim();if(!v){toast('Write a note first');return}const b=brandById(+e.dataset.id);b.notes.unshift({who:'You',when:'Just now',text:v});b.lastCheckin=0;render();toast('Note saved')},
-  task:e=>{const b=brandById(+e.dataset.id);b.tasks[+e.dataset.i].done=e.checked;render()},
+  side:()=>{if(window.matchMedia('(max-width:860px)').matches){S.sideOpen=!S.sideOpen}else{S.side=!S.side;try{localStorage.setItem('bh-side',S.side?'1':'0')}catch(e){}}render()},
+  sidemob:()=>{S.sideOpen=false;render()},
+  trackmore:()=>{S.tShow+=40;render()},
+  contacted:e=>{const b=brandById(+e.dataset.id);b.contacts[+e.dataset.ci].last=new Date(TODAY);logAct(b,'Logged contact with '+b.contacts[+e.dataset.ci].name);render();toast('Marked contacted today')},
+  quicknote:()=>{const b=brandById(+$('#qnb').value),v=$('#qnt').value.trim();if(!v){toast('Write a note first');return}b.notes=(b.notes?b.notes+'\n':'')+fdate(TODAY)+': '+v;logAct(b,'Added a note');render();toast('Note saved to '+b.name)},
+  remindq:e=>{const r=requests.find(x=>x.id===e.dataset.id);updateReq(r.id,()=>{},'Reminder sent by WhatsApp',false);toast('Reminder sent to '+supName(r.supplier));render()},
+  reconnect:e=>toast('Reconnect link sent to the store owner'),
+  addissue:e=>{
+    $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Add issue"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Add issue</h2><button class="btn sm" data-act="closelayer2">Close</button></div><div class="small" style="margin-bottom:12px">${esc(brandById(+e.dataset.id).name)}</div>
+    <div class="field"><label for="ni-text">Issue</label><textarea id="ni-text" rows="3"></textarea></div>
+    <div class="field"><label for="ni-status">Status</label><select id="ni-status"><option>Pending</option><option>In Progress</option><option>Resolved</option></select></div>
+    <button class="btn primary" data-act="saveissue" data-id="${e.dataset.id}" style="width:100%">Save issue</button></div></div>`;
+  },
+  saveissue:e=>{const t=$('#ni-text').value.trim();if(!t){toast('Describe the issue first');return}const b=brandById(+e.dataset.id);b.issues.unshift({text:t,status:$('#ni-status').value,created:new Date(TODAY)});logAct(b,'Added issue: '+t);render();toast('Issue added')},
+  rmissue:e=>{const b=brandById(+e.dataset.id),i=b.issues.splice(+e.dataset.ii,1)[0];logAct(b,'Removed issue: '+i.text);render();toast('Issue removed')},
+  addpartner:e=>{
+    $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Add partner"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Add partner</h2><button class="btn sm" data-act="closelayer2">Close</button></div><div class="small" style="margin-bottom:12px">${esc(brandById(+e.dataset.id).name)}</div>
+    <div class="field"><label for="np-name">Partner name</label><input type="text" id="np-name"></div>
+    <div class="field"><label for="np-email">Email address</label><input type="text" id="np-email"></div>
+    <button class="btn primary" data-act="savepartner" data-id="${e.dataset.id}" style="width:100%">Add partner</button></div></div>`;
+  },
+  savepartner:e=>{const n=$('#np-name').value.trim();if(!n){toast('Enter the partner name');return}const b=brandById(+e.dataset.id);b.contacts.push({name:n,email:$('#np-email').value.trim(),last:new Date(TODAY),actions:''});logAct(b,'Added partner '+n);render();toast('Partner added')},
+  rmpartner:e=>{const b=brandById(+e.dataset.id),c=b.contacts.splice(+e.dataset.ci,1)[0];logAct(b,'Removed partner '+c.name);render();toast('Partner removed')},
   createreq:()=>{
     const b=brandById(+$('#nb').value), no=$('#no').value.replace(/\D/g,''), q=parseInt($('#nq').value,10);
     if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
@@ -521,7 +735,7 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('change',ev=>{
   const t=ev.target;
-  if(t.dataset.act==='task'){ACTIONS.task(t);return}
+  if(t.dataset.ps){psEdit(t);return}
   if(t.dataset.cost){
     const b=brandById(+t.dataset.id), s=b.skus[+t.dataset.i], f=t.dataset.cost, raw=t.value.replace(/[$,\s]/g,''), v=parseFloat(raw);
     if(f==='cost')s.cost=raw===''||isNaN(v)||v<0?null:v; else s[f]=isNaN(v)||v<0?0:v;
@@ -535,7 +749,7 @@ document.addEventListener('change',ev=>{
   else if(t.id==='rsup'){S.rsup=t.value;render()}
   else if(t.id==='invrisk'){S.invRisk=t.value;render()}
   else if(t.id==='invmode'){S.invBrand=t.value;render()}
-  else if(t.id==='hsel'){const b=brandById(+t.dataset.id);b.health=t.value;toast('Health set to '+HEALTH[b.health][2]);render()}
+  else if(t.id==='tass'){S.tAss=t.value;S.tShow=40;render()}
   else if(t.id==='nb')fillNewReq();
 });
 document.addEventListener('input',ev=>{
@@ -550,8 +764,9 @@ const tip=$('#tip');
 document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.closest('[data-tip]');if(t){tip.textContent=t.dataset.tip;tip.style.opacity=1;tip.style.left=ev.clientX+'px';tip.style.top=ev.clientY+'px'}else tip.style.opacity=0});
 
 function render(){
-  renderTop();
-  $('#app').innerHTML=S.role==='supplier'?renderSupplier():S.page==='brand'?renderBrand():S.page==='requests'?renderRequests():S.page==='inventory'?renderInventory():renderPortfolio();
+  renderTop();renderSide();
+  const PAGES={brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
+  $('#app').innerHTML=S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)();
   $('#layer').innerHTML='';
 }
 render();
