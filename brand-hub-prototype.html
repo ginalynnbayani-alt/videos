@@ -260,7 +260,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -645,21 +645,57 @@ function payTable(list,cols){
   return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Payment</th>${c.sup===false?'':'<th>Supplier</th>'}<th>PO</th>${c.brand===false?'':'<th>Brand</th>'}<th>Type</th><th class="num">Amount</th><th>Due</th><th>Status</th><th>Invoice</th><th>Paid</th><th></th></tr></thead><tbody>${payRows(list).map(p=>{const b=brandById(p.brandId);return `<tr><td class="mono">${p.id}</td>${c.sup===false?'':`<td>${esc(supName(p.supplier))}</td>`}<td><button class="link mono" data-act="openpo" data-id="${p.poId}">${p.poId}</button></td>${c.brand===false?'':`<td>${esc(b.name)}</td>`}<td>${p.kind}</td><td class="num">${money0(p.amount)}</td><td>${fdate(p.due)}<div class="small ${payStatus(p)==='overdue'?'down':''}">${p.paidOn?'':rel(p.due)}</div></td><td>${paySpill(p)}</td><td>${invCell(p)}</td><td class="small">${p.paidOn?`${fdate(p.paidOn)} · ${esc(p.method)}<div class="mono">${esc(p.ref)}</div>`:'–'}</td><td style="text-align:right">${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No payments match.</div>'}</div>`;
 }
 const tabPOs=b=>{const pl=purchaseOrders.filter(p=>p.brandId===b.id).sort((a,c)=>c.createdOn-a.createdOn), py=payments.filter(p=>p.brandId===b.id);
-  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Purchase orders</h2><button class="btn primary" data-act="newpo" data-id="${b.id}">+ New purchase order</button></div>${poTable(pl,false)}<h2 style="margin:22px 0 10px">Supplier payments</h2>${payTable(py,{brand:false})}`};
+  return `${summaryTiles(poStats(pl),'all time')}<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Purchase orders</h2><button class="btn primary" data-act="newpo" data-id="${b.id}">+ New purchase order</button></div>${poTable(pl,false)}<h2 style="margin:22px 0 10px">Supplier payments</h2>${payTable(py,{brand:false})}`};
 
+const parseISO=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
+function poStats(list){
+  const c=list.filter(po=>po.status!=='Draft'&&po.status!=='Cancelled'), pays=c.flatMap(poPays), paid=pays.filter(p=>p.paidOn).reduce((a,p)=>a+p.amount,0), un=pays.filter(p=>!p.paidOn), pending=un.reduce((a,p)=>a+p.amount,0), od=un.filter(p=>payStatus(p)==='overdue');
+  return {n:c.length,paid,pending,total:paid+pending,overdue:od.reduce((a,p)=>a+p.amount,0),odN:od.length,unN:un.length,paidN:pays.length-un.length,open:c.filter(poOpen).length,received:c.filter(po=>po.status==='Received').length};
+}
+function poRangeBounds(){
+  const r=S.poRange;
+  if(r==='month')return [new Date(TODAY.getFullYear(),TODAY.getMonth(),1),new Date(TODAY.getFullYear(),TODAY.getMonth()+1,0)];
+  if(r==='30')return [addD(TODAY,-29),TODAY];
+  if(r==='90')return [addD(TODAY,-89),TODAY];
+  if(r==='next30')return [TODAY,addD(TODAY,30)];
+  if(r==='custom')return [S.poFrom?parseISO(S.poFrom):null,S.poTo?parseISO(S.poTo):null];
+  return [null,null];
+}
+const poInRange=po=>{const [a,b]=poRangeBounds(),d=S.poBasis==='eta'?po.eta:po.createdOn;return (!a||d>=a)&&(!b||d<=b)};
+function poRangeLabel(){const [a,b]=poRangeBounds();if(!a&&!b)return 'All time';return (a?fdate(a):'Start')+' to '+(b?fdate(b):'today and beyond')}
+function summaryTiles(st,label){
+  return `<div class="grid kpis"><div class="card kpi"><h3>Total PO value</h3><div class="v">${money0(st.total)}</div><div class="d">${st.n} PO${st.n===1?'':'s'} · ${label}</div></div>
+  <div class="card kpi"><h3>Paid</h3><div class="v up">${money0(st.paid)}</div><div class="d">${st.total?Math.round(st.paid/st.total*100):0}% of total · ${st.paidN} payment${st.paidN===1?'':'s'}</div></div>
+  <div class="card kpi"><h3>Pending payment</h3><div class="v">${money0(st.pending)}</div><div class="d ${st.odN?'down':''}">${st.odN?'! '+money0(st.overdue)+' overdue':st.unN+' payment'+(st.unN===1?'':'s')+' to make'}</div></div>
+  <div class="card kpi"><h3>Purchase orders</h3><div class="v">${st.n}</div><div class="d">${st.open} open · ${st.received} received</div></div></div>`;
+}
 function renderPOs(){
   const all=purchaseOrders.slice().sort((a,b)=>b.createdOn-a.createdOn);
-  const f=all.filter(po=>(!S.poSt||(S.poSt==='Late'?poLate(po):po.status===S.poSt))&&(S.poSup===''||po.supplier==S.poSup));
-  const open=all.filter(poOpen), openVal=open.reduce((a,po)=>a+poTotal(po),0), soon=open.filter(po=>po.eta>=TODAY&&po.eta<=addD(TODAY,7)), late=all.filter(poLate);
-  const chip=k=>`<button class="chip" data-act="posf" data-k="${k}" aria-pressed="${S.poSt===k}">${k||'All'}${k?` · ${k==='Late'?late.length:all.filter(p=>p.status===k).length}`:''}</button>`;
-  return `<div class="head"><div><h1>Purchase orders</h1><p class="sub">Orders placed with suppliers to restock brands. Receiving a PO moves its units from incoming to on hand.</p></div><button class="btn primary" data-act="newpo">+ New purchase order</button></div>
-  <div class="grid kpis"><div class="card kpi"><h3>Open PO value</h3><div class="v">${money(openVal)}</div><div class="d">${open.length} orders sent, not yet received</div></div>
-  <div class="card kpi"><h3>Awaiting confirmation</h3><div class="v">${all.filter(p=>p.status==='Sent').length}</div><div class="d">Sent, supplier has not confirmed</div></div>
-  <div class="card kpi"><h3>Arriving in 7 days</h3><div class="v">${soon.length}</div><div class="d">${money(soon.reduce((a,p)=>a+poTotal(p),0))} of stock</div></div>
-  <div class="card kpi"><h3>Late</h3><div class="v ${late.length?'down':''}">${late.length}</div><div class="d">Past their ETA</div></div></div>
+  const scope=all.filter(po=>(S.poBrand===''||po.brandId==S.poBrand)&&(S.poSup===''||po.supplier==S.poSup)&&poInRange(po));
+  const f=scope.filter(po=>!S.poSt||(S.poSt==='Late'?poLate(po):po.status===S.poSt));
+  const st=poStats(scope), label=S.poBrand===''?'all brands':brandById(+S.poBrand).name;
+  const late=scope.filter(poLate);
+  const chip=k=>`<button class="chip" data-act="posf" data-k="${k}" aria-pressed="${S.poSt===k}">${k||'All'}${k?` · ${k==='Late'?late.length:scope.filter(p=>p.status===k).length}`:''}</button>`;
+  const brandIds=new Set(all.map(p=>p.brandId));
+  const byBrand=[...new Set(scope.map(p=>p.brandId))].map(id=>({b:brandById(id),st:poStats(scope.filter(p=>p.brandId===id))})).filter(x=>x.st.n).sort((a,c)=>c.st.pending-a.st.pending);
+  const shownB=S.poAllBrands?byBrand:byBrand.slice(0,8);
+  const brandOpts=[...brands].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}" ${S.poBrand!==''&&+S.poBrand===b.id?'selected':''}>${esc(b.name)}${brandIds.has(b.id)?'':' (no POs)'}</option>`).join('');
+  const opt=(v,l,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`;
+  const pays=scope.filter(po=>po.status!=='Draft'&&po.status!=='Cancelled').flatMap(poPays);
+  return `<div class="head"><div><h1>Purchase orders</h1><p class="sub">Orders placed with suppliers to restock brands. Pick a brand and a date range to see what was ordered, paid and is still owed.</p></div><button class="btn primary" data-act="newpo">+ New purchase order</button></div>
+  <div class="filters" style="align-items:flex-end">
+   <div class="field" style="margin:0"><label for="pobrand">Brand</label><select id="pobrand"><option value="">All brands</option>${brandOpts}</select></div>
+   <div class="field" style="margin:0"><label for="porange">Date range</label><select id="porange">${opt('all','All time',S.poRange)}${opt('month','This month',S.poRange)}${opt('30','Last 30 days',S.poRange)}${opt('90','Last 90 days',S.poRange)}${opt('next30','Next 30 days',S.poRange)}${opt('custom','Custom range',S.poRange)}</select></div>
+   ${S.poRange==='custom'?`<div class="field" style="margin:0"><label for="pofrom">From</label><input type="date" id="pofrom" value="${S.poFrom}"></div><div class="field" style="margin:0"><label for="poto">To</label><input type="date" id="poto" value="${S.poTo}"></div>`:''}
+   <div class="field" style="margin:0"><label for="pobasis">Date is the</label><select id="pobasis">${opt('ordered','Order date',S.poBasis)}${opt('eta','Expected arrival',S.poBasis)}</select></div>
+   <div class="field" style="margin:0"><label for="posup">Supplier</label><select id="posup"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.poSup==s.id&&S.poSup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+   <button class="btn" data-act="poreset">Reset</button></div>
+  <p class="small" style="margin:-4px 0 12px">Showing ${esc(label)} · ${poRangeLabel()} (${S.poBasis==='eta'?'by expected arrival':'by order date'}). Drafts and cancelled POs are not counted in the totals.</p>
+  ${summaryTiles(st,label)}
+  ${S.poBrand===''&&byBrand.length?`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h2>By brand</h2><span class="small">Most owed first</span></div><div class="tablewrap" style="border:0;margin-top:8px"><table style="min-width:640px"><thead><tr><th>Brand</th><th class="num">POs</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Pending</th><th>% paid</th></tr></thead><tbody>${shownB.map(x=>`<tr><td><button class="link" data-act="pobrand" data-id="${x.b.id}">${esc(x.b.name)}</button></td><td class="num">${x.st.n}</td><td class="num">${money0(x.st.total)}</td><td class="num">${money0(x.st.paid)}</td><td class="num ${x.st.odN?'down':''}">${money0(x.st.pending)}${x.st.odN?' !':''}</td><td><div class="bar"><span style="width:${x.st.total?x.st.paid/x.st.total*100:0}%"></span></div></td></tr>`).join('')}</tbody></table></div>${byBrand.length>8?`<div style="margin-top:8px"><button class="link" data-act="poallbrands">${S.poAllBrands?'Show top 8':`Show all ${byBrand.length} brands`}</button></div>`:''}</div>`:''}
   <div class="chips">${['','Draft','Sent','Confirmed','In production','Shipped','Received','Late'].map(chip).join('')}</div>
-  <div class="filters"><select id="posup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.poSup==s.id&&S.poSup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
-  ${poTable(f)}`;
+  ${poTable(f)}
+  ${S.poBrand!==''?`<h2 style="margin:22px 0 10px">Payments for ${esc(label)}</h2>${payTable(pays,{brand:false})}`:''}`;
 }
 function renderPayments(){
   const all=payments, unpaid=all.filter(p=>!p.paidOn);
@@ -943,6 +979,9 @@ const ACTIONS={
   savepartner:e=>{const n=$('#np-name').value.trim();if(!n){toast('Enter the partner name');return}const b=brandById(+e.dataset.id);b.contacts.push({name:n,email:$('#np-email').value.trim(),last:new Date(TODAY),actions:''});logAct(b,'Added partner '+n);render();toast('Partner added')},
   rmpartner:e=>{const b=brandById(+e.dataset.id),c=b.contacts.splice(+e.dataset.ci,1)[0];logAct(b,'Removed partner '+c.name);render();toast('Partner removed')},
   posf:e=>{S.poSt=e.dataset.k;render()},
+  pobrand:e=>{S.poBrand=e.dataset.id;render();window.scrollTo(0,0)},
+  poallbrands:()=>{S.poAllBrands=!S.poAllBrands;render()},
+  poreset:()=>{S.poBrand='';S.poRange='all';S.poFrom='';S.poTo='';S.poBasis='ordered';S.poSup='';S.poSt='';render()},
   payf:e=>{S.payFilter=e.dataset.k;if(S.page!=='payments'){S.page='payments'}render()},
   openpo:e=>{S.recvOpen=null;poDrawer(e.dataset.id)},
   newpo:e=>newPoModal(e.dataset.id!=null?+e.dataset.id:null),
@@ -1050,6 +1089,11 @@ document.addEventListener('change',ev=>{
   else if(t.id==='npb')fillPoRows();
   else if(t.id==='iv-pay'){const pp=payments.find(x=>x.id===t.value);$('#iv-amt').value=pp.amount.toFixed(2);$('#iv-due').value=isoDate(pp.due)}
   else if(t.id==='posup'){S.poSup=t.value;render()}
+  else if(t.id==='pobrand'){S.poBrand=t.value;render()}
+  else if(t.id==='porange'){S.poRange=t.value;render()}
+  else if(t.id==='pofrom'){S.poFrom=t.value;render()}
+  else if(t.id==='poto'){S.poTo=t.value;render()}
+  else if(t.id==='pobasis'){S.poBasis=t.value;render()}
   else if(t.id==='paysup'){S.paySup=t.value;render()}
 });
 document.addEventListener('input',ev=>{
