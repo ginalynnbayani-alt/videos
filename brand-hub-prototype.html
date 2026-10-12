@@ -259,7 +259,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -284,10 +284,10 @@ const stockCover=s=>s.vel?s.onHand/s.vel:99;
 const stockState=s=>s.onHand===0?['crit','✕','Out of stock']:stockCover(s)<10||s.onHand<s.rp*.5?['warn','!','Low']:['good','✓','OK'];
 
 /* ---------- charts ---------- */
-function barChart(vals,fmt,label){
+function barChart(vals,fmt,label,unit,al){
   const max=Math.max(...vals)*1.08, w=300, h=100, bw=w/vals.length;
   const bars=vals.map((v,i)=>{const bh=Math.max(1,v/max*h);return `<rect x="${i*bw+bw*.12}" y="${h-bh}" width="${bw*.76}" height="${bh}" rx="2" fill="var(--accent)"/><rect class="hit" x="${i*bw}" y="0" width="${bw}" height="${h}" data-tip="${label(i)} · ${fmt(v)}"/>`}).join('');
-  return `<div class="chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Daily revenue, last 30 days"><line x1="0" x2="${w}" y1="${h*.33}" y2="${h*.33}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h*.66}" y2="${h*.66}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h}" y2="${h}" stroke="var(--axis)" stroke-width="1" vector-effect="non-scaling-stroke"/>${bars}</svg><div class="axis"><span>${label(0)}</span><span>peak ${fmt(Math.max(...vals))}/day</span><span>${label(vals.length-1)}</span></div></div>`;
+  return `<div class="chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="${al||'Daily revenue, last 30 days'}"><line x1="0" x2="${w}" y1="${h*.33}" y2="${h*.33}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h*.66}" y2="${h*.66}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h}" y2="${h}" stroke="var(--axis)" stroke-width="1" vector-effect="non-scaling-stroke"/>${bars}</svg><div class="axis"><span>${label(0)}</span><span>peak ${fmt(Math.max(...vals))}/${unit||'day'}</span><span>${label(vals.length-1)}</span></div></div>`;
 }
 function lineChart(vals,fmt,label){
   const max=Math.max(...vals)*1.08, w=600, h=100, step=w/(vals.length-1);
@@ -303,9 +303,9 @@ function spark(vals){
 }
 
 /* ---------- top bar ---------- */
-const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
+const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/>',card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>'};
 const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
-const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log'};
+const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments'};
 function renderTop(){
   const ops=S.role==='ops';
   $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i>Brand Hub</div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
@@ -318,12 +318,12 @@ function renderSide(){
   el.hidden=!ops;$('#scrim').className='scrim'+(ops&&S.sideOpen?' on':'');
   if(!ops)return;
   el.className='side'+(S.side?' collapsed':'')+(S.sideOpen?' open':'');
-  const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length;
+  const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length, lp=purchaseOrders.filter(poLate).length, op=payments.filter(p=>!p.paidOn&&payStatus(p)==='overdue').length;
   const it=(p,l,i,badge)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}" ${cur===p?'aria-current="page"':''}>${ico(i)}<span class="lbl">${l}</span>${badge?`<span class="tag">${badge}</span>`:''}</button>`;
   el.innerHTML=`<div class="logo"><i></i><span class="lbl">Brand Hub</span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
-  ${it('opsHome','Ops overview','pulse')}${it('requests','Supplier requests','truck',ro)}${it('inventory','Inventory','box')}
+  ${it('opsHome','Ops overview','pulse')}${it('requests','Supplier requests','truck',ro)}${it('pos','Purchase orders','doc',lp)}${it('payments','Supplier payments','card',op)}${it('inventory','Inventory','box')}
   <div class="grp"><span class="lbl">Partner success</span></div>
   ${it('psHome','PS overview','users')}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
   <div class="side-foot"><button class="si" data-act="side" title="${S.side?'Expand':'Collapse'} sidebar">${ico(S.side?'right':'left')}<span class="lbl">Collapse</span></button></div>`;
@@ -384,11 +384,11 @@ function renderPortfolio(){
 /* ---------- brand drill-down ---------- */
 function renderBrand(){
   const b=brandById(S.brandId), sup=supName(b.supplier);
-  const tabs=[['overview','Overview'],['inventory','Inventory'],['costs','Costs & COGS'],['orders','Orders & returns'],['requests','Supplier requests'],['marketing','Marketing'],['ps','Partner success']];
+  const tabs=[['overview','Overview'],['inventory','Inventory'],['costs','Costs & COGS'],['orders','Orders & returns'],['requests','Supplier requests'],['pos','POs & payments'],['marketing','Marketing'],['ps','Partner success']];
   return `<button class="back" data-act="nav" data-p="portfolio">← All brands</button>
   <div class="head"><div><h1>${esc(b.name)}</h1><p class="sub">${esc(b.slug)}.myshopify.com · Tier ${b.tier} · ${b.mode==='dropship'?'Dropship':'Ships to our warehouse'} via ${esc(sup)}</p></div><div class="row">${hpill(b.health)}<button class="btn primary" data-act="newreq" data-id="${b.id}">+ New supplier request</button></div></div>
   <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}${t[0]==='requests'?` <span class="tag">${requests.filter(r=>r.brandId===b.id).length}</span>`:''}</button>`).join('')}</div>
-  ${({overview:tabOverview,inventory:tabInventory,costs:tabCosts,orders:tabOrders,requests:tabRequests,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
+  ${({overview:tabOverview,inventory:tabInventory,costs:tabCosts,orders:tabOrders,requests:tabRequests,pos:tabPOs,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
 }
 function tabOverview(b){
   const rq=requests.filter(r=>r.brandId===b.id&&openReqs(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
@@ -528,16 +528,21 @@ function renderOpsHome(){
   const od=requests.filter(isOverdue), aw=requests.filter(r=>r.status==='notified'&&!isOverdue(r)), ip=requests.filter(r=>r.status==='ack');
   const outs=[];brands.forEach(b=>b.skus.forEach(s=>{if(s.onHand===0)outs.push({b,s})}));outs.sort((x,y)=>y.b.revenue-x.b.revenue);
   const stale=brands.filter(b=>b.syncMin>120).sort((a,b)=>b.syncMin-a.syncMin);
+  const payDue=payments.filter(p=>!p.paidOn&&['overdue','soon'].includes(payStatus(p))).sort((a,c)=>a.due-c.due), payOd=payDue.filter(p=>payStatus(p)==='overdue'), latePo=purchaseOrders.filter(poLate);
+  const payCard=`<div class="card"><h2>Supplier payments to make</h2>${payDue.length?`<div class="list" style="margin-top:6px">${payDue.slice(0,6).map(p=>`<div><span><b>${money0(p.amount)}</b> to ${esc(supName(p.supplier))}<br><span class="small">${p.kind} · ${p.poId} · ${esc(brandById(p.brandId).name)}<br>Due ${fdate(p.due)} (${rel(p.due)})</span></span><button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button></div>`).join('')}</div>`:'<p class="small">Nothing due in the next 7 days.</p>'}<p class="small" style="margin:10px 0 0"><button class="link" data-act="nav" data-p="payments">All supplier payments →</button></p></div>`;
+  const poCard=`<div class="card"><h2>Late purchase orders</h2>${latePo.length?`<div class="list" style="margin-top:6px">${latePo.map(po=>`<div><span><button class="link mono" data-act="openpo" data-id="${po.id}">${po.id}</button> <span class="small">${esc(brandById(po.brandId).name)}<br>${esc(supName(po.supplier))} · ETA ${fdate(po.eta)} (${rel(po.eta)})</span></span>${poPill(po)}</div>`).join('')}</div>`:'<p class="small">No late purchase orders.</p>'}<p class="small" style="margin:10px 0 0"><button class="link" data-act="nav" data-p="pos">All purchase orders →</button></p></div>`;
   return `<div class="head"><div><h1>Ops workspace</h1><p class="sub">What needs action today: late supplier requests, stock-outs and stores that stopped syncing.</p></div><div class="row"><button class="btn" data-act="nav" data-p="inventory">Open inventory</button><button class="btn primary" data-act="newreq">+ New supplier request</button></div></div>
   <div class="grid kpis">
    <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Overdue requests</h3><div class="v ${od.length?'down':''}">${od.length}</div><div class="d">No reply in 24 hours</div></button></div>
    <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Awaiting supplier</h3><div class="v">${aw.length}</div><div class="d">${ip.length} in progress</div></button></div>
    <div class="card kpi"><button data-act="nav" data-p="inventory"><h3>Out-of-stock SKUs</h3><div class="v">${outs.length}</div><div class="d">across ${new Set(outs.map(o=>o.b.id)).size} brands</div></button></div>
-   <div class="card kpi"><h3>Stores not syncing</h3><div class="v ${stale.length?'down':''}">${stale.length}</div><div class="d">of ${brands.length} connected</div></div></div>
+   <div class="card kpi"><h3>Stores not syncing</h3><div class="v ${stale.length?'down':''}">${stale.length}</div><div class="d">of ${brands.length} connected</div></div>
+   <div class="card kpi"><button data-act="nav" data-p="pos"><h3>Late purchase orders</h3><div class="v ${latePo.length?'down':''}">${latePo.length}</div><div class="d">Past their ETA</div></button></div>
+   <div class="card kpi"><button data-act="payf" data-k="overdue"><h3>Overdue supplier payments</h3><div class="v ${payOd.length?'down':''}">${money(payOd.reduce((a,p)=>a+p.amount,0))}</div><div class="d">${payOd.length} payment${payOd.length===1?'':'s'}</div></button></div></div>
   <div class="cols2">
    <div class="card"><h2>Overdue supplier requests</h2>${od.length?`<div class="list" style="margin-top:6px">${od.map(r=>{const b=brandById(r.brandId);return `<div><span><button class="link" data-act="openreq" data-id="${r.id}">${r.id}</button> <span class="small">${typeLabel(r.type,b)} · ${esc(b.name)}<br>${esc(supName(r.supplier))} · ${ago(r.hoursAgo)}</span></span><button class="btn sm" data-act="remindq" data-id="${r.id}">Send reminder</button></div>`}).join('')}</div>`:'<p class="small">Nothing overdue.</p>'}</div>
    <div class="card"><h2>Out of stock, biggest brands first</h2><div class="list" style="margin-top:6px">${outs.slice(0,8).map(o=>`<div><span><button class="link" data-act="brand" data-id="${o.b.id}">${esc(o.b.name)}</button><br><span class="small">${esc(o.s.name)} · held by ${esc(o.s.loc)}</span></span><button class="btn sm" data-act="newreq" data-id="${o.b.id}">Request restock</button></div>`).join('')}</div></div>
-   <div class="card"><h2>Stores not syncing</h2>${stale.length?`<div class="list" style="margin-top:6px">${stale.map(b=>`<div><span><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><br><span class="small mono">${esc(b.slug)}.myshopify.com · last sync ${Math.round(b.syncMin/60)} h ago</span></span><button class="btn sm" data-act="reconnect">Send reconnect link</button></div>`).join('')}</div>`:'<p class="small">Every store is syncing.</p>'}</div></div>`;
+   <div class="card"><h2>Stores not syncing</h2>${stale.length?`<div class="list" style="margin-top:6px">${stale.map(b=>`<div><span><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><br><span class="small mono">${esc(b.slug)}.myshopify.com · last sync ${Math.round(b.syncMin/60)} h ago</span></span><button class="btn sm" data-act="reconnect">Send reconnect link</button></div>`).join('')}</div>`:'<p class="small">Every store is syncing.</p>'}</div>${payCard}${poCard}</div>`;
 }
 
 /* ---------- partner success workspace ---------- */
@@ -576,6 +581,151 @@ function renderTracker(){
 function renderActivity(){
   return `<div class="head"><div><h1>Activity log</h1><p class="sub">Most recent changes to partner success data, newest first.</p></div></div>
   <div class="card"><div class="list">${activity.slice(0,100).map(a=>`<div><span><b>${esc(a.who)}</b> · ${esc(a.text)}<br><button class="link" data-act="brand" data-id="${a.id}">${esc(a.brand)}</button></span><span class="small">${ago((Date.now()-a.at)/36e5)}</span></div>`).join('')}</div></div>`;
+}
+
+/* ---------- purchase orders & supplier payments ---------- */
+const TERMS=['Prepaid','50% deposit, 50% before shipping','Net 15','Net 30'];
+const addD=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const rel=d=>{const n=Math.round((d-TODAY)/864e5);return n===0?'today':n>0?`in ${n} day${n>1?'s':''}`:`${-n} day${n<-1?'s':''} ago`};
+const fdateY=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+const purchaseOrders=[], payments=[]; let poSeq=2400, paySeq=7100;
+const poSub=po=>po.lines.reduce((a,l)=>a+l.qty*l.unit,0), poTotal=po=>poSub(po)+po.freight;
+const poPays=po=>payments.filter(p=>p.poId===po.id), poPaid=po=>poPays(po).filter(p=>p.paidOn).reduce((a,p)=>a+p.amount,0);
+const poUnits=po=>po.lines.reduce((a,l)=>a+l.qty,0);
+const poLate=po=>['Sent','Confirmed','In production','Shipped'].includes(po.status)&&po.eta<TODAY;
+const poOpen=po=>['Sent','Confirmed','In production','Shipped'].includes(po.status);
+const PO_FLOW=['Draft','Sent','Confirmed','In production','Shipped','Received'];
+const POS={Draft:['idle','○'],Sent:['info','→'],Confirmed:['info','✓'],'In production':['info','◐'],Shipped:['info','→'],Received:['good','✓'],Cancelled:['crit','✕']};
+const poPill=po=>{const x=POS[po.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${po.status}</span>`+(poLate(po)?` <span class="pill crit"><b>!</b>Late</span>`:'')};
+const PAYS={overdue:['crit','!','Overdue'],soon:['warn','!','Due soon'],scheduled:['idle','○','Scheduled'],paid:['good','✓','Paid']};
+function payStatus(p){if(p.paidOn)return 'paid';const n=Math.round((p.due-TODAY)/864e5);return n<0?'overdue':n<=7?'soon':'scheduled'}
+const paySpill=p=>{const x=PAYS[payStatus(p)];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
+function genPays(po){
+  const tot=poTotal(po), mk=(kind,amt,due)=>payments.push({id:'PAY-'+(++paySeq),poId:po.id,supplier:po.supplier,brandId:po.brandId,kind,amount:Math.round(amt*100)/100,due,paidOn:null,method:'',ref:''});
+  const sent=po.sentOn||TODAY;
+  if(po.terms==='Prepaid')mk('Full payment',tot,addD(sent,2));
+  else if(po.terms.startsWith('50%')){const dep=Math.round(tot/2);mk('Deposit',dep,addD(sent,3));mk('Balance',tot-dep,addD(po.eta,-7))}
+  else mk('Invoice',tot,addD(po.eta,po.terms==='Net 15'?15:30));
+}
+function adjIncoming(po,sign){const b=brandById(po.brandId);po.lines.forEach(l=>{const s=b.skus.find(x=>x.sku===l.sku);if(s)s.incoming=Math.max(0,s.incoming+sign*l.qty)})}
+function poEvent(po,t){po.events.unshift({t,ago:0})}
+(function seedPOs(){
+  const plan=[['Draft',1],['Sent',2],['Sent',1],['Sent',3],['Confirmed',7],['Confirmed',9],['Confirmed',6],['In production',18],['In production',22],['In production',27],['Shipped',30],['Shipped',28],['Shipped',33],['Received',45],['Received',52],['Received',60],['Received',41],['Cancelled',12]];
+  plan.forEach((pl,i)=>{
+    const st=pl[0], age=pl[1], b=brands[(i*4+1)%72], skus=b.skus.slice(0,ri(2,3));
+    const lines=skus.map(s=>({sku:s.sku,name:s.name,qty:Math.max(24,Math.round(s.vel*ri(30,60)/12)*12),unit:s.cost!=null?s.cost:+(8+R()*20).toFixed(2),recv:0}));
+    const po={id:'PO-'+(++poSeq),brandId:b.id,supplier:b.supplier,createdOn:addD(TODAY,-age),sentOn:st==='Draft'?null:addD(TODAY,-age+1),status:st,terms:pick(TERMS),lines,freight:0,tracking:'',carrier:'',receivedOn:null,events:[]};
+    po.freight=Math.round(poSub(po)*.04);
+    po.eta=addD(TODAY,st==='Draft'?35:st==='Sent'?28:st==='Confirmed'?20:st==='In production'?(i===8?-3:ri(6,14)):st==='Shipped'?ri(1,6):st==='Received'?-ri(8,25):10);
+    if(st==='Shipped'||st==='Received'){po.carrier=pick(['DHL','FedEx','UPS']);po.tracking='1Z999AA10'+ri(1e5,9e5)}
+    if(st==='Received'){po.receivedOn=po.eta;po.lines.forEach(l=>l.recv=l.qty)}
+    const ev=[['PO created by '+pick(PEOPLE.ops),0]];let k=0;
+    if(st!=='Draft'){ev.push(['Sent to '+SUPPLIERS[b.supplier].name+' by email and WhatsApp',++k])}
+    if(['Confirmed','In production','Shipped','Received'].includes(st))ev.push(['Supplier confirmed',++k]);
+    if(['In production','Shipped','Received'].includes(st))ev.push(['Supplier started production',++k]);
+    if(['Shipped','Received'].includes(st))ev.push(['Shipped with tracking '+po.tracking,++k]);
+    if(st==='Received')ev.push(['Received '+poUnits(po)+' units in full',++k]);
+    if(st==='Cancelled')ev.push(['PO cancelled',++k]);
+    po.events=ev.map((e,j)=>({t:e[0],ago:Math.max(1,age*24-j*ri(20,60))}));
+    purchaseOrders.push(po);
+    if(st!=='Draft'&&st!=='Cancelled'){
+      genPays(po);
+      poPays(po).forEach(p=>{if(p.due<TODAY&&(R()<.72||st==='Received'&&!p.kind.startsWith('Invoice'))){p.paidOn=addD(p.due,-ri(0,2));if(p.paidOn>TODAY)p.paidOn=new Date(TODAY);p.method=pick(['Wire','ACH']);p.ref=p.method.toUpperCase()+'-'+ri(10000,99999)}});
+    }
+  });
+})();
+const payRows=list=>list.slice().sort((a,c)=>(a.paidOn?1:0)-(c.paidOn?1:0)||(a.paidOn?c.paidOn-a.paidOn:a.due-c.due));
+
+function poTable(list,showBrand=true){
+  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>PO</th>${showBrand?'<th>Brand</th>':''}<th>Supplier</th><th>Ordered</th><th>ETA</th><th>Status</th><th class="num">Units</th><th class="num">Total</th><th>Paid</th></tr></thead><tbody>${list.map(po=>{const b=brandById(po.brandId),tot=poTotal(po),paid=poPaid(po);return `<tr data-act="openpo" data-id="${po.id}" tabindex="0"><td class="name mono">${po.id}</td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td>${esc(supName(po.supplier))}</td><td class="small">${fdate(po.createdOn)}</td><td>${fdate(po.eta)}<div class="small ${poLate(po)?'down':''}">${po.status==='Received'?'received':po.status==='Cancelled'?'cancelled':rel(po.eta)}</div></td><td>${poPill(po)}</td><td class="num">${poUnits(po).toLocaleString()}</td><td class="num">${money0(tot)}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${tot?Math.min(100,paid/tot*100):0}%"></span></div><span class="small">${po.status==='Cancelled'?'–':money(paid)}</span></div></td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No purchase orders match.</div>'}</div>`;
+}
+function payTable(list,cols){
+  const c=cols||{};
+  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Payment</th>${c.sup===false?'':'<th>Supplier</th>'}<th>PO</th>${c.brand===false?'':'<th>Brand</th>'}<th>Type</th><th class="num">Amount</th><th>Due</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${payRows(list).map(p=>{const b=brandById(p.brandId);return `<tr><td class="mono">${p.id}</td>${c.sup===false?'':`<td>${esc(supName(p.supplier))}</td>`}<td><button class="link mono" data-act="openpo" data-id="${p.poId}">${p.poId}</button></td>${c.brand===false?'':`<td>${esc(b.name)}</td>`}<td>${p.kind}</td><td class="num">${money0(p.amount)}</td><td>${fdate(p.due)}<div class="small ${payStatus(p)==='overdue'?'down':''}">${p.paidOn?'':rel(p.due)}</div></td><td>${paySpill(p)}</td><td class="small">${p.paidOn?`${fdate(p.paidOn)} · ${esc(p.method)}<div class="mono">${esc(p.ref)}</div>`:'–'}</td><td style="text-align:right">${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No payments match.</div>'}</div>`;
+}
+const tabPOs=b=>{const pl=purchaseOrders.filter(p=>p.brandId===b.id).sort((a,c)=>c.createdOn-a.createdOn), py=payments.filter(p=>p.brandId===b.id);
+  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Purchase orders</h2><button class="btn primary" data-act="newpo" data-id="${b.id}">+ New purchase order</button></div>${poTable(pl,false)}<h2 style="margin:22px 0 10px">Supplier payments</h2>${payTable(py,{brand:false})}`};
+
+function renderPOs(){
+  const all=purchaseOrders.slice().sort((a,b)=>b.createdOn-a.createdOn);
+  const f=all.filter(po=>(!S.poSt||(S.poSt==='Late'?poLate(po):po.status===S.poSt))&&(S.poSup===''||po.supplier==S.poSup));
+  const open=all.filter(poOpen), openVal=open.reduce((a,po)=>a+poTotal(po),0), soon=open.filter(po=>po.eta>=TODAY&&po.eta<=addD(TODAY,7)), late=all.filter(poLate);
+  const chip=k=>`<button class="chip" data-act="posf" data-k="${k}" aria-pressed="${S.poSt===k}">${k||'All'}${k?` · ${k==='Late'?late.length:all.filter(p=>p.status===k).length}`:''}</button>`;
+  return `<div class="head"><div><h1>Purchase orders</h1><p class="sub">Orders placed with suppliers to restock brands. Receiving a PO moves its units from incoming to on hand.</p></div><button class="btn primary" data-act="newpo">+ New purchase order</button></div>
+  <div class="grid kpis"><div class="card kpi"><h3>Open PO value</h3><div class="v">${money(openVal)}</div><div class="d">${open.length} orders sent, not yet received</div></div>
+  <div class="card kpi"><h3>Awaiting confirmation</h3><div class="v">${all.filter(p=>p.status==='Sent').length}</div><div class="d">Sent, supplier has not confirmed</div></div>
+  <div class="card kpi"><h3>Arriving in 7 days</h3><div class="v">${soon.length}</div><div class="d">${money(soon.reduce((a,p)=>a+poTotal(p),0))} of stock</div></div>
+  <div class="card kpi"><h3>Late</h3><div class="v ${late.length?'down':''}">${late.length}</div><div class="d">Past their ETA</div></div></div>
+  <div class="chips">${['','Draft','Sent','Confirmed','In production','Shipped','Received','Late'].map(chip).join('')}</div>
+  <div class="filters"><select id="posup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.poSup==s.id&&S.poSup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+  ${poTable(f)}`;
+}
+function renderPayments(){
+  const all=payments, unpaid=all.filter(p=>!p.paidOn);
+  const sum=l=>l.reduce((a,p)=>a+p.amount,0), od=unpaid.filter(p=>payStatus(p)==='overdue'), soon=unpaid.filter(p=>payStatus(p)==='soon');
+  const paid30=all.filter(p=>p.paidOn&&p.paidOn>=addD(TODAY,-30));
+  const f=all.filter(p=>(!S.payFilter||(S.payFilter==='paid'?!!p.paidOn:payStatus(p)===S.payFilter))&&(S.paySup===''||p.supplier==S.paySup));
+  const mon=addD(TODAY,-((TODAY.getDay()+6)%7)), wk=Array.from({length:8},()=>0);
+  unpaid.forEach(p=>{const i=Math.min(7,Math.max(0,Math.floor((p.due-mon)/(7*864e5))));wk[i]+=p.amount});
+  const chip=(k,l)=>`<button class="chip" data-act="payf" data-k="${k}" aria-pressed="${S.payFilter===k}">${l}${k?` · ${k==='paid'?all.filter(p=>p.paidOn).length:unpaid.filter(p=>payStatus(p)===k).length}`:''}</button>`;
+  const supCard=s=>{const u=unpaid.filter(p=>p.supplier===s.id), o=u.filter(p=>payStatus(p)==='overdue'), nx=u.slice().sort((a,c)=>a.due-c.due)[0];
+    return `<div class="card"><h2>${esc(s.name)}</h2><dl style="margin-top:10px"><dt>Outstanding</dt><dd><b>${money0(sum(u))}</b> across ${u.length} payment${u.length===1?'':'s'}</dd><dt>Overdue</dt><dd class="${o.length?'down':''}">${o.length?'! '+money0(sum(o))+' ('+o.length+')':'None'}</dd><dt>Next due</dt><dd>${nx?`${money0(nx.amount)} on ${fdate(nx.due)} <span class="small">(${rel(nx.due)})</span>`:'Nothing scheduled'}</dd><dt>Open POs</dt><dd>${purchaseOrders.filter(po=>po.supplier===s.id&&poOpen(po)).length}</dd></dl></div>`};
+  return `<div class="head"><div><h1>Supplier payments</h1><p class="sub">Deposits, balances and invoices owed to suppliers, built from each PO's payment terms.</p></div></div>
+  <div class="grid kpis"><div class="card kpi"><h3>Outstanding</h3><div class="v">${money(sum(unpaid))}</div><div class="d">${unpaid.length} unpaid payments</div></div>
+  <div class="card kpi"><button data-act="payf" data-k="overdue"><h3>Overdue</h3><div class="v ${od.length?'down':''}">${money(sum(od))}</div><div class="d ${od.length?'down':''}">${od.length?'! '+od.length+' payments late':'Nothing late'}</div></button></div>
+  <div class="card kpi"><button data-act="payf" data-k="soon"><h3>Due in 7 days</h3><div class="v">${money(sum(soon))}</div><div class="d">${soon.length} payments</div></button></div>
+  <div class="card kpi"><h3>Paid, last 30 days</h3><div class="v">${money(sum(paid30))}</div><div class="d">${paid30.length} payments</div></div></div>
+  <div class="cols2" style="margin-bottom:12px">${SUPPLIERS.map(supCard).join('')}
+   <div class="card" style="grid-column:1/-1"><h2>Cash out by week</h2><p class="small" style="margin:2px 0 10px">Unpaid supplier payments by due week. Overdue amounts are counted in this week.</p>${barChart(wk,money,i=>'Week of '+fdate(addD(mon,i*7)),'week','Supplier payments due, next 8 weeks')}</div></div>
+  <div class="chips">${chip('','All')}${chip('overdue','Overdue')}${chip('soon','Due soon')}${chip('scheduled','Scheduled')}${chip('paid','Paid')}</div>
+  <div class="filters"><select id="paysup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.paySup==s.id&&S.paySup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+  ${payTable(f)}`;
+}
+
+function poDrawer(id){
+  const po=purchaseOrders.find(x=>x.id===id), b=brandById(po.brandId), tot=poTotal(po), paid=poPaid(po), pays=poPays(po), i=PO_FLOW.indexOf(po.status);
+  const next={Draft:['posend','Send to supplier'],Sent:['poadv','Mark confirmed'],Confirmed:['poadv','Mark in production']}[po.status];
+  const canCancel=['Draft','Sent','Confirmed','In production'].includes(po.status);
+  let action='';
+  if(next)action=`<button class="btn primary" data-act="${next[0]}" data-id="${po.id}">${next[1]}</button>`;
+  else if(po.status==='In production')action=`<div class="field" style="margin:0"><label for="po-carrier">Carrier</label><select id="po-carrier"><option>DHL</option><option>FedEx</option><option>UPS</option><option>Ocean freight</option></select></div><div class="field" style="margin:0"><label for="po-track">Tracking or container number</label><input type="text" id="po-track" placeholder="Required"></div><button class="btn primary" data-act="poship" data-id="${po.id}">Mark shipped</button>`;
+  else if(po.status==='Shipped')action=`<button class="btn primary" data-act="porecvform" data-id="${po.id}">Receive stock</button>`;
+  const recv=S.recvOpen===po.id&&po.status==='Shipped';
+  $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" style="width:min(640px,100%)" role="dialog" aria-label="${po.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${po.id}</h2><div class="small">${esc(b.name)} · ${esc(supName(po.supplier))}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div style="margin:14px 0">${poPill(po)}</div>
+  ${po.status!=='Received'&&po.status!=='Cancelled'?`<div class="row" style="align-items:flex-end;margin-bottom:14px">${action}${canCancel?`<button class="btn" data-act="pocancel" data-id="${po.id}">Cancel PO</button>`:''}</div>`:''}
+  ${recv?`<div class="card" style="margin-bottom:14px"><h3>Units received</h3>${po.lines.map((l,k)=>`<div class="field" style="margin:8px 0 0"><label for="rc-${k}">${esc(l.name)} (${l.sku}), ordered ${l.qty}</label><input type="text" inputmode="numeric" id="rc-${k}" value="${l.qty}"></div>`).join('')}<button class="btn primary" data-act="porecv" data-id="${po.id}" style="margin-top:12px">Confirm received</button></div>`:''}
+  <dl><dt>Payment terms</dt><dd>${esc(po.terms)}</dd><dt>Ordered</dt><dd>${fdateY(po.createdOn)}</dd><dt>ETA</dt><dd><input type="date" data-po="eta" data-id="${po.id}" value="${isoDate(po.eta)}" aria-label="ETA" ${po.status==='Received'||po.status==='Cancelled'?'disabled':''}> ${poLate(po)?'<span class="small down">! Late</span>':''}</dd>${po.tracking?`<dt>Shipment</dt><dd>${esc(po.carrier)} · <span class="mono">${esc(po.tracking)}</span></dd>`:''}${po.receivedOn?`<dt>Received</dt><dd>${fdateY(po.receivedOn)}</dd>`:''}</dl>
+  <h3 style="margin:20px 0 8px">Items</h3><div class="tablewrap"><table style="min-width:520px"><thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Line total</th><th class="num">Received</th></tr></thead><tbody>${po.lines.map(l=>`<tr><td>${esc(l.name)}<div class="small mono">${l.sku}</div></td><td class="num">${l.qty}</td><td class="num">${usd2(l.unit)}</td><td class="num">${money0(l.qty*l.unit)}</td><td class="num">${po.status==='Received'?l.recv:'–'}</td></tr>`).join('')}<tr><td colspan="3" class="small">Freight and handling (4%)</td><td class="num">${money0(po.freight)}</td><td></td></tr><tr><td colspan="3"><b>Total</b></td><td class="num"><b>${money0(tot)}</b></td><td></td></tr></tbody></table></div>
+  <h3 style="margin:20px 0 8px">Payments</h3>${pays.length?`<div class="list">${pays.map(p=>`<div><span><b>${p.kind}</b> ${money0(p.amount)}<div class="small">${p.paidOn?`Paid ${fdate(p.paidOn)} · ${esc(p.method)} ${esc(p.ref)}`:`Due ${fdate(p.due)} (${rel(p.due)})`}</div></span><span class="row" style="gap:8px">${paySpill(p)}${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</span></div>`).join('')}</div><p class="small" style="margin:8px 0 0">Paid ${money0(paid)} of ${money0(tot)}. Outstanding ${money0(tot-paid)}.</p>`:`<p class="small">${po.status==='Draft'?'Payments are scheduled when the PO is sent.':'No payments.'}</p>`}
+  <h3 style="margin:20px 0 10px">Activity</h3><ul class="timeline">${po.events.slice().sort((a,c)=>a.ago-c.ago).map(e=>`<li class="sys"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
+}
+function payModal(id){
+  const p=payments.find(x=>x.id===id);
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Record payment"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Record payment</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <p style="margin:0 0 14px"><b>${money0(p.amount)}</b> to ${esc(supName(p.supplier))}<br><span class="small">${p.kind} for ${p.poId}, due ${fdate(p.due)}</span></p>
+  <div class="field"><label for="pm-method">Payment method</label><select id="pm-method"><option>Wire</option><option>ACH</option><option>Card</option><option>Check</option></select></div>
+  <div class="field"><label for="pm-ref">Reference or confirmation number</label><input type="text" id="pm-ref" placeholder="Required"></div>
+  <div class="field"><label for="pm-date">Date paid</label><input type="date" id="pm-date" value="${isoDate(TODAY)}"></div>
+  <div id="pm-err" class="small down" style="min-height:18px"></div>
+  <button class="btn primary" data-act="savepay" data-id="${p.id}" style="width:100%">Mark as paid</button></div></div>`;
+}
+function newPoModal(preBrand){
+  const b=brandById(preBrand!=null?preBrand:S.page==='brand'?S.brandId:0);
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="New purchase order"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">New purchase order</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div class="field"><label for="npb">Brand</label><select id="npb">${brands.map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+  <div id="npinfo" class="small" style="margin:-4px 0 12px"></div>
+  <div id="nprows"></div>
+  <div class="field"><label for="npt">Payment terms</label><select id="npt">${TERMS.map(t=>`<option>${t}</option>`).join('')}</select></div>
+  <div class="field"><label for="npe">Expected arrival</label><input type="date" id="npe" value="${isoDate(addD(TODAY,30))}"></div>
+  <div id="nperr" class="small down" style="min-height:18px"></div>
+  <div class="row"><button class="btn" data-act="createpo" data-send="0" style="flex:1">Save as draft</button><button class="btn primary" data-act="createpo" data-send="1" style="flex:1">Send to supplier</button></div></div></div>`;
+  fillPoRows();
+}
+function fillPoRows(){
+  const b=brandById(+$('#npb').value);
+  $('#npinfo').textContent=`Supplier: ${supName(b.supplier)}. ${b.mode==='dropship'?'Stock stays with the supplier.':'Stock ships to our warehouse.'}`;
+  $('#nprows').innerHTML=[0,1,2].map(k=>`<div class="prow" style="grid-template-columns:2fr 1fr 1fr"><select id="ps${k}" data-po="sku" data-k="${k}" aria-label="Item ${k+1}"><option value="">${k?'(none)':'Choose an item'}</option>${b.skus.map((s,i)=>`<option value="${i}" ${k===0&&i===0?'selected':''}>${esc(s.name)} (${s.sku})</option>`).join('')}</select><input type="text" inputmode="numeric" id="pq${k}" placeholder="Qty" value="${k===0?Math.max(24,Math.round(b.skus[0].vel*45/12)*12):''}" aria-label="Quantity ${k+1}"><input type="text" inputmode="decimal" id="pu${k}" placeholder="Unit cost" value="${k===0&&b.skus[0].cost!=null?b.skus[0].cost.toFixed(2):''}" aria-label="Unit cost ${k+1}"></div>`).join('');
 }
 
 /* ---------- ops requests & inventory ---------- */
@@ -702,6 +852,39 @@ const ACTIONS={
   },
   savepartner:e=>{const n=$('#np-name').value.trim();if(!n){toast('Enter the partner name');return}const b=brandById(+e.dataset.id);b.contacts.push({name:n,email:$('#np-email').value.trim(),last:new Date(TODAY),actions:''});logAct(b,'Added partner '+n);render();toast('Partner added')},
   rmpartner:e=>{const b=brandById(+e.dataset.id),c=b.contacts.splice(+e.dataset.ci,1)[0];logAct(b,'Removed partner '+c.name);render();toast('Partner removed')},
+  posf:e=>{S.poSt=e.dataset.k;render()},
+  payf:e=>{S.payFilter=e.dataset.k;if(S.page!=='payments'){S.page='payments'}render()},
+  openpo:e=>{S.recvOpen=null;poDrawer(e.dataset.id)},
+  newpo:e=>newPoModal(e.dataset.id!=null?+e.dataset.id:null),
+  createpo:e=>{
+    const b=brandById(+$('#npb').value), lines=[];
+    for(let k=0;k<3;k++){const si=$('#ps'+k).value,q=parseInt($('#pq'+k).value,10),u=parseFloat($('#pu'+k).value);if(si===''&&!(q>0))continue;if(si===''||!(q>0)||!(u>0)){$('#nperr').textContent='Each item needs a product, a quantity and a unit cost.';return}const s=b.skus[+si];lines.push({sku:s.sku,name:s.name,qty:q,unit:u,recv:0})}
+    if(!lines.length){$('#nperr').textContent='Add at least one item.';return}
+    const eta=$('#npe').value.split('-').map(Number), send=e.dataset.send==='1';
+    const po={id:'PO-'+(++poSeq),brandId:b.id,supplier:b.supplier,createdOn:new Date(TODAY),sentOn:send?new Date(TODAY):null,status:send?'Sent':'Draft',terms:$('#npt').value,lines,freight:0,tracking:'',carrier:'',receivedOn:null,eta:new Date(eta[0],eta[1]-1,eta[2]),events:[]};
+    po.freight=Math.round(poSub(po)*.04);poEvent(po,'PO created by You');
+    purchaseOrders.unshift(po);
+    if(send){poEvent(po,'Sent to '+supName(po.supplier)+' by email and WhatsApp');genPays(po);adjIncoming(po,1)}
+    render();poDrawer(po.id);toast(send?'PO sent to '+supName(po.supplier):'Draft saved');
+  },
+  posend:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='Sent';po.sentOn=new Date(TODAY);genPays(po);adjIncoming(po,1);poEvent(po,'Sent to '+supName(po.supplier)+' by email and WhatsApp');render();poDrawer(po.id);toast('PO sent. Payments scheduled.')},
+  poadv:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status=PO_FLOW[PO_FLOW.indexOf(po.status)+1];poEvent(po,po.status==='Confirmed'?'Supplier confirmed':'Supplier started production');render();poDrawer(po.id);toast('PO marked '+po.status.toLowerCase())},
+  poship:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),t=$('#po-track').value.trim();if(!t){toast('Enter the tracking or container number');return}po.status='Shipped';po.carrier=$('#po-carrier').value;po.tracking=t;poEvent(po,'Shipped with tracking '+t);render();poDrawer(po.id);toast('PO marked shipped')},
+  porecvform:e=>{S.recvOpen=e.dataset.id;poDrawer(e.dataset.id)},
+  porecv:e=>{
+    const po=purchaseOrders.find(x=>x.id===e.dataset.id), b=brandById(po.brandId);let total=0,short=false;
+    po.lines.forEach((l,k)=>{const q=Math.max(0,parseInt($('#rc-'+k).value,10)||0);l.recv=q;total+=q;if(q<l.qty)short=true;const s=b.skus.find(x=>x.sku===l.sku);if(s){s.incoming=Math.max(0,s.incoming-l.qty);s.onHand+=q}});
+    po.status='Received';po.receivedOn=new Date(TODAY);poEvent(po,`Received ${total} of ${poUnits(po)} units${short?' (short shipment)':''}. Stock added to ${b.name}.`);
+    S.recvOpen=null;render();poDrawer(po.id);toast('Stock received. Inventory updated.')},
+  pocancel:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);if(po.status!=='Draft')adjIncoming(po,-1);po.status='Cancelled';for(let i=payments.length-1;i>=0;i--)if(payments[i].poId===po.id&&!payments[i].paidOn)payments.splice(i,1);poEvent(po,'PO cancelled. Unpaid payments removed.');render();poDrawer(po.id);toast('PO cancelled')},
+  paymodal:e=>payModal(e.dataset.id),
+  savepay:e=>{
+    const p=payments.find(x=>x.id===e.dataset.id), ref=$('#pm-ref').value.trim(), d=$('#pm-date').value.split('-').map(Number);
+    if(!ref){$('#pm-err').textContent='Enter the reference or confirmation number.';return}
+    p.paidOn=new Date(d[0],d[1]-1,d[2]);p.method=$('#pm-method').value;p.ref=ref;
+    const po=purchaseOrders.find(x=>x.id===p.poId);poEvent(po,`${p.kind} of ${money0(p.amount)} paid by ${p.method} (${ref})`);
+    const from=S.page;render();toast('Payment recorded');
+  },
   createreq:()=>{
     const b=brandById(+$('#nb').value), no=$('#no').value.replace(/\D/g,''), q=parseInt($('#nq').value,10);
     if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
@@ -736,6 +919,8 @@ document.addEventListener('click',ev=>{
 document.addEventListener('change',ev=>{
   const t=ev.target;
   if(t.dataset.ps){psEdit(t);return}
+  if(t.dataset.po==='eta'){const po=purchaseOrders.find(x=>x.id===t.dataset.id),d=t.value.split('-').map(Number);if(d.length!==3||d.some(isNaN))return;po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,'ETA changed to '+fdateY(po.eta));render();poDrawer(po.id);toast('ETA updated');return}
+  if(t.dataset.po==='sku'){const b=brandById(+$('#npb').value),k=t.dataset.k;if(t.value!==''){const sk=b.skus[+t.value];$('#pu'+k).value=sk.cost!=null?sk.cost.toFixed(2):'';if(!$('#pq'+k).value)$('#pq'+k).value=Math.max(24,Math.round(sk.vel*45/12)*12)}return}
   if(t.dataset.cost){
     const b=brandById(+t.dataset.id), s=b.skus[+t.dataset.i], f=t.dataset.cost, raw=t.value.replace(/[$,\s]/g,''), v=parseFloat(raw);
     if(f==='cost')s.cost=raw===''||isNaN(v)||v<0?null:v; else s[f]=isNaN(v)||v<0?0:v;
@@ -751,6 +936,9 @@ document.addEventListener('change',ev=>{
   else if(t.id==='invmode'){S.invBrand=t.value;render()}
   else if(t.id==='tass'){S.tAss=t.value;S.tShow=40;render()}
   else if(t.id==='nb')fillNewReq();
+  else if(t.id==='npb')fillPoRows();
+  else if(t.id==='posup'){S.poSup=t.value;render()}
+  else if(t.id==='paysup'){S.paySup=t.value;render()}
 });
 document.addEventListener('input',ev=>{
   if(ev.target.id==='q'){S.q=ev.target.value;S.show=20;$('#tbl').innerHTML=brandTable()}
@@ -765,7 +953,7 @@ document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.
 
 function render(){
   renderTop();renderSide();
-  const PAGES={brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
+  const PAGES={pos:renderPOs,payments:renderPayments,brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
   $('#app').innerHTML=S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)();
   $('#layer').innerHTML='';
 }
