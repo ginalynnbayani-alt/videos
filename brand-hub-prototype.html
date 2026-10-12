@@ -1,0 +1,519 @@
+<title>Brand Hub</title>
+<style>
+/* Layout: sticky top bar, role switch (Ops / Supplier), page content in a centered 1200px column; tables scroll inside their own wrapper. */
+:root{
+  --bg:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6f6d67;
+  --line:#e1e0d9; --axis:#c3c2b7; --wash:#f0efec; --accent:#2a78d6; --accent-soft:#cde2fb; --on-accent:#ffffff;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --serious:#ec835a; --good-ink:#006300;
+  --shadow:0 1px 2px rgba(11,11,11,.06),0 8px 24px rgba(11,11,11,.08);
+  --sans:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
+  --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
+  --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
+  --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
+  --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;padding-inline:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:24px} h2{font-size:16px} h3{font-size:13px;color:var(--ink2);font-weight:600}
+.wrap{max-width:1200px;margin:0 auto;padding-block:16px 64px}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px}
+.topbar-in{max-width:1200px;margin:0 auto;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.logo{font-weight:700;letter-spacing:-.02em;font-size:16px;display:flex;align-items:center;gap:8px;margin-right:8px}
+.logo i{width:18px;height:18px;border-radius:5px;background:var(--accent);display:inline-block;position:relative}
+.logo i::after{content:"";position:absolute;inset:5px;border-radius:2px;background:var(--bg)}
+nav{display:flex;gap:2px;flex-wrap:wrap}
+nav button,.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;color:var(--ink2);cursor:pointer}
+nav button:hover{background:var(--wash)}
+nav button[aria-current="page"]{background:var(--wash);color:var(--ink);font-weight:600}
+.spacer{flex:1}
+.seg{display:inline-flex;background:var(--wash);border-radius:10px;padding:3px}
+.seg button{padding:5px 12px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.proto{font-size:12px;color:var(--muted);padding:8px 0}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,tr[data-act]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:550}
+.btn:hover{background:var(--wash)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.head{display:flex;gap:16px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;margin-block:8px 16px}
+.sub{color:var(--ink2);margin:4px 0 0}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.kpi .v{font-size:26px;font-weight:650;letter-spacing:-.02em;margin-top:4px}
+.kpi .d{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.kpi button{all:unset;cursor:pointer;display:block;width:100%}
+.up{color:var(--good-ink)} .down{color:var(--crit)}
+.two{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.three{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--surface);position:sticky;top:0}
+th button{all:unset;cursor:pointer}
+th button:hover{color:var(--ink)}
+tr:last-child td{border-bottom:0}
+tr[data-act]{cursor:pointer}
+tr[data-act]:hover td{background:var(--wash)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.name{font-weight:600}
+.small{font-size:12.5px;color:var(--ink2)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+input[type=search],input[type=text],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+textarea{width:100%;resize:vertical}
+input[type=search]{width:240px;max-width:100%}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap}
+.pill b{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--c);color:#fff;font-size:10px;line-height:1}
+.pill.warn b{color:#0b0b0b}
+.good{--c:var(--good)} .warn{--c:var(--warn)} .crit{--c:var(--crit)} .info{--c:var(--accent)} .idle{--c:var(--muted)}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;background:var(--wash);font-size:12px;color:var(--ink2)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 12px;cursor:pointer;color:var(--ink2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.back{border:0;background:none;color:var(--ink2);cursor:pointer;padding:0;margin-bottom:6px}
+.back:hover{color:var(--ink)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0}
+dt{color:var(--muted)} dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:150px}
+.chart .axis{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px}
+.hit{fill:transparent} .hit:hover{fill:color-mix(in srgb,var(--accent) 14%,transparent)}
+#tip{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:var(--bg);padding:5px 9px;border-radius:7px;font-size:12px;opacity:0;transform:translate(10px,10px);white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:var(--wash);min-width:70px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:4px;background:var(--accent)}
+.list{display:grid;gap:0}
+.list>div{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.list>div:last-child{border-bottom:0;padding-bottom:0}
+.timeline{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.timeline li{display:grid;grid-template-columns:10px 1fr;gap:10px}
+.timeline li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px}
+.timeline li.sys::before{background:var(--axis)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:flex;justify-content:flex-end}
+.overlay.center{justify-content:center;align-items:flex-start;padding:5vh 16px;overflow:auto}
+.panel{background:var(--surface);width:min(560px,100%);height:100%;overflow:auto;padding:20px;box-shadow:var(--shadow)}
+.overlay.center .panel{height:auto;border-radius:14px;width:min(520px,100%)}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-size:12.5px;color:var(--ink2);font-weight:600}
+.field select,.field input{width:100%}
+.msg{background:var(--wash);border-radius:10px;padding:12px;font-size:13px;margin-bottom:10px;overflow-wrap:anywhere}
+.msg .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:70;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+.supbanner{display:flex;gap:10px;align-items:center;background:var(--accent-soft);color:var(--ink);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;flex-wrap:wrap}
+:root[data-theme="dark"] .supbanner{color:#f0efec}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .supbanner{color:#f0efec}}
+.req{display:grid;gap:12px}
+.req .top{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.req .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.upl{border:1px dashed var(--axis);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+@media (prefers-reduced-motion:no-preference){.overlay{animation:fade .12s ease-out}@keyframes fade{from{opacity:0}}}
+</style>
+
+<div class="topbar"><div class="topbar-in" id="topbar"></div></div>
+<div class="wrap">
+  <div class="proto">Prototype with sample data. Brand names, suppliers, orders and numbers are made up. Nothing here is connected to Shopify yet.</div>
+  <div id="app"></div>
+</div>
+<div id="tip"></div>
+<div id="layer"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ---------- sample data ---------- */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(2026), ri=(a,b)=>Math.floor(R()*(b-a+1))+a, pick=a=>a[Math.floor(R()*a.length)];
+const A=['Alder','Birch','Cedar','Dune','Ember','Fjord','Grove','Harbor','Iris','Juniper','Kestrel','Linden','Maple','Nova','Olive','Pine','Quill','Reed','Sage','Tide','Umber','Vale','Willow','Yarrow','Zephyr','Amber','Brook','Cove','Delta','Echo'];
+const B=['Goods','Home','Supply','Studio','Labs','Outdoors','Kitchen','Pet Co','Wear','Beauty','Tools','Kids'];
+const SUPPLIERS=[{id:0,name:'Northgate Supply',email:'orders@northgate.example'},{id:1,name:'Harborline Fulfillment',email:'ops@harborline.example'}];
+const PEOPLE={ps:['Dana Whitfield','Marco Ibarra','Tess Okafor'],meta:['Priya Nair','Leo Brandt'],google:['Sam Ortega','Ana Lindqvist'],email:['Jo Mercer','Kai Abdi'],ops:['Rina Castillo','Ben Hoang']};
+const NOUN={Goods:['Tote','Mug','Candle','Blanket','Planter','Tray','Journal'],Home:['Throw','Vase','Lamp','Rug','Cushion','Basket'],Supply:['Kit','Organizer','Bin','Caddy','Rack'],Studio:['Print','Frame','Brush Set','Palette','Canvas'],Labs:['Serum','Cleanser','Mist','Balm'],Outdoors:['Pack','Bottle','Tent Stake Set','Camp Mug','Hammock'],Kitchen:['Skillet','Knife','Board','Whisk','Colander'],'Pet Co':['Leash','Bed','Chew Toy','Bowl','Harness'],Wear:['Tee','Hoodie','Beanie','Socks','Jacket'],Beauty:['Lip Tint','Palette','Brush','Toner'],Tools:['Driver Set','Level','Tape','Clamp'],Kids:['Puzzle','Backpack','Blocks','Bib','Cup']};
+const FIRST=['Maya','Noah','Ivy','Omar','Lena','Theo','Zoe','Ravi','Cleo','Hugo','Nia','Finn'];
+const D0=new Date(2026,8,12);
+const dayLabel=i=>new Date(2026,8,12+i).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+const brands=[];
+for(let i=0;i<72;i++){
+  const suffix=B[(i*7+Math.floor(i/30)*5)%12], name=A[i%30]+' '+suffix;
+  const base=Math.exp(R()*3.1)*20000, trend=(R()-.42)*.5;
+  const series=Array.from({length:30},(_,d)=>Math.max(200,base/30*(1+trend*(d/30-.5)+(R()-.5)*.55)));
+  const revenue=series.reduce((a,b)=>a+b,0), delta=(R()-.35)*.55;
+  const aov=ri(38,120), orders=Math.round(revenue/aov);
+  const metaSp=revenue*(.08+R()*.14), googSp=revenue*(.04+R()*.1);
+  brands.push({id:i,name,suffix,slug:name.toLowerCase().replace(/[^a-z]+/g,'-'),supplier:R()<.5?0:1,mode:R()<.55?'dropship':'warehouse',
+    revenue,delta,series,orders,aov,returnRate:.02+R()*.12,
+    meta:{spend:metaSp,rev:metaSp*(1.6+R()*3),owner:pick(PEOPLE.meta)},
+    google:{spend:googSp,rev:googSp*(2+R()*4),owner:pick(PEOPLE.google)},
+    email:{rev:revenue*(.08+R()*.18),sends:ri(8,40),owner:pick(PEOPLE.email),list:ri(4,90)*1000},
+    syncMin:R()<.08?ri(300,2600):ri(1,22),
+    owner:pick(PEOPLE.ps),renewal:new Date(2027,ri(0,11),ri(1,28)),currency:R()<.8?'USD':pick(['CAD','GBP','EUR']),
+    lastCheckin:ri(1,48),skus:[],orderRows:[],notes:[],tasks:[]});
+}
+const rankSorted=[...brands].sort((a,b)=>b.revenue-a.revenue);
+rankSorted.forEach((b,i)=>b.tier=i<12?'A':i<40?'B':'C');
+brands.forEach(b=>{
+  const n=ri(5,8), nouns=NOUN[b.suffix];
+  for(let k=0;k<n;k++){
+    const vel=ri(1,14), onHand=R()<.1?0:ri(0,420), rp=vel*ri(10,18);
+    b.skus.push({sku:b.slug.slice(0,3).toUpperCase()+'-'+(100+k*7+ri(0,5)),name:pick(nouns)+(R()<.5?' · '+pick(['Small','Large','Sage','Sand','Ink']):''),onHand,incoming:R()<.35?ri(60,300):0,vel,rp,loc:b.mode==='dropship'?SUPPLIERS[b.supplier].name:'Our warehouse'});
+  }
+  const st=['Fulfilled','Fulfilled','In transit','Delivered','Delivered','Awaiting supplier','Returned','Cancelled'];
+  for(let k=0;k<8;k++){const s=pick(st);b.orderRows.push({no:1000+ri(100,9000),cust:pick(FIRST)+' '+String.fromCharCode(65+ri(0,25))+'.',total:Math.round(b.aov*(.6+R()*1.2)),status:s,days:k*ri(1,2)});}
+  b.stockout=b.skus.filter(s=>s.onHand===0).length;
+  b.lowCover=b.skus.filter(s=>s.onHand>0&&s.onHand/s.vel<10).length;
+  const score=(b.returnRate>.1?2:b.returnRate>.075?1:0)+(b.stockout>1?2:b.stockout?1:0)+(b.delta<-.15?2:b.delta<0?1:0)+(b.syncMin>120?1:0);
+  b.health=score>=4?'red':score>=2?'yellow':'green';
+  b.notes=[{who:b.owner,when:b.lastCheckin+' days ago',text:pick(['Walked through Q4 plan. They want to add two new SKUs before BFCM.','Asked about faster return handling. Showed the supplier portal flow.','Flagged slow supplier response on cancellations. Escalated to ops.','Positive call. Planning a bundle launch in November.'])}];
+  b.tasks=[{t:pick(['Confirm BFCM inventory plan','Send Q3 performance recap','Review return reasons with supplier','Schedule contract renewal call']),done:false},{t:'Check in on ad creative refresh',done:R()<.4}];
+  b.nextStep=b.tasks[0].t;
+});
+const brandById=id=>brands[id];
+
+/* ---------- requests ---------- */
+let reqSeq=1040; const requests=[];
+function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',carrier:'',label:'',note:'',events:[]},o);const p={order:'ORD',return:'RET',cancellation:'CXL'}[r.type];r.id=p+'-'+(++reqSeq);r.events.unshift({sys:true,t:'Request created by '+r.by,ago:r.hoursAgo});r.events.unshift({sys:true,t:'Notified '+SUPPLIERS[r.supplier].name+' by email and WhatsApp',ago:r.hoursAgo});return r;}
+(function seed(){
+  const ex=[['return',2,'ack'],['return',3,'notified'],['cancellation',1,'notified'],['order',5,'notified'],['return',30,'notified'],['cancellation',26,'notified'],['return',7,'done'],['order',9,'ack'],['cancellation',4,'declined'],['return',50,'ack'],['order',3,'done'],['return',12,'notified'],['cancellation',0.5,'notified'],['order',40,'notified']];
+  ex.forEach((e,i)=>{
+    const b=brands[(i*5+3)%72], sk=b.skus[i%b.skus.length];
+    const r=mkReq({type:e[0],brandId:b.id,supplier:b.supplier,orderNo:1000+ri(100,9000),items:[{sku:sk.sku,name:sk.name,qty:ri(1,3)}],reason:{return:'Item arrived damaged',cancellation:'Customer changed their mind',order:'Customer order'}[e[0]],by:pick(PEOPLE.ops),hoursAgo:e[1]});
+    r.status=e[2];
+    if(e[2]==='ack')r.events.unshift({t:'Supplier acknowledged',ago:Math.max(0,e[1]-1)});
+    if(e[2]==='done'){r.events.unshift({t:'Supplier acknowledged',ago:e[1]-1});r.carrier='UPS';r.tracking='1Z999AA10'+ri(1e5,9e5);if(e[0]==='return')r.label='return-label-'+r.id+'.pdf';r.events.unshift({t:e[0]==='return'?'Supplier uploaded return label and tracking '+r.tracking:'Supplier marked shipped with tracking '+r.tracking,ago:Math.max(0,e[1]-2)});r.events.unshift({sys:true,t:'Written back to Shopify ('+b.slug+'.myshopify.com)',ago:Math.max(0,e[1]-2)});}
+    if(e[2]==='declined'){r.note='Order already left the warehouse yesterday.';r.events.unshift({t:'Supplier replied: already shipped, cannot cancel',ago:e[1]-1});}
+    requests.push(r);
+  });
+})();
+
+/* ---------- state & helpers ---------- */
+const S={role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'k':'$'+Math.round(n);
+const money0=n=>'$'+Math.round(n).toLocaleString('en-US');
+const pct=(n,d=1)=>(n*100).toFixed(d)+'%';
+const dpct=n=>`<span class="${n>=0?'up':'down'}">${n>=0?'▲':'▼'} ${Math.abs(n*100).toFixed(0)}%</span>`;
+const ago=h=>h<1?Math.max(1,Math.round(h*60))+' min ago':h<48?Math.round(h)+' h ago':Math.round(h/24)+' days ago';
+const typeLabel=(t,b)=>t==='order'?(b&&b.mode==='warehouse'?'Replenishment order':'Order'):t==='return'?'Return':'Cancellation';
+const HEALTH={green:['good','✓','Healthy'],yellow:['warn','!','Watch'],red:['crit','✕','At risk']};
+const hpill=h=>{const x=HEALTH[h];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
+const isOverdue=r=>r.status==='notified'&&r.hoursAgo>=24;
+const RS={notified:['idle','○','Awaiting supplier'],ack:['info','◐','In progress'],done:['good','✓','Completed'],declined:['crit','!','Cannot cancel'],overdue:['crit','!','Overdue']};
+const spill=r=>{const x=RS[isOverdue(r)?'overdue':r.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
+const openReqs=r=>r.status!=='done'&&r.status!=='declined';
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
+const supName=id=>SUPPLIERS[id].name;
+const stockCover=s=>s.vel?s.onHand/s.vel:99;
+const stockState=s=>s.onHand===0?['crit','✕','Out of stock']:stockCover(s)<10||s.onHand<s.rp*.5?['warn','!','Low']:['good','✓','OK'];
+
+/* ---------- charts ---------- */
+function barChart(vals,fmt,label){
+  const max=Math.max(...vals)*1.08, w=300, h=100, bw=w/vals.length;
+  const bars=vals.map((v,i)=>{const bh=Math.max(1,v/max*h);return `<rect x="${i*bw+bw*.12}" y="${h-bh}" width="${bw*.76}" height="${bh}" rx="2" fill="var(--accent)"/><rect class="hit" x="${i*bw}" y="0" width="${bw}" height="${h}" data-tip="${label(i)} · ${fmt(v)}"/>`}).join('');
+  return `<div class="chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Daily revenue, last 30 days"><line x1="0" x2="${w}" y1="${h*.33}" y2="${h*.33}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h*.66}" y2="${h*.66}" stroke="var(--line)" stroke-width="1" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h}" y2="${h}" stroke="var(--axis)" stroke-width="1" vector-effect="non-scaling-stroke"/>${bars}</svg><div class="axis"><span>${label(0)}</span><span>peak ${fmt(Math.max(...vals))}/day</span><span>${label(vals.length-1)}</span></div></div>`;
+}
+function lineChart(vals,fmt,label){
+  const max=Math.max(...vals)*1.08, w=600, h=100, step=w/(vals.length-1);
+  const pts=vals.map((v,i)=>[i*step,h-v/max*h]);
+  const line=pts.map(p=>p.join(',')).join(' '), area=`0,${h} ${line} ${w},${h}`;
+  const hits=vals.map((v,i)=>`<rect class="hit" x="${Math.max(0,i*step-step/2)}" y="0" width="${step}" height="${h}" data-tip="${label(i)} · ${fmt(v)}"/>`).join('');
+  return `<div class="chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Portfolio revenue per day, last 30 days"><line x1="0" x2="${w}" y1="${h*.33}" y2="${h*.33}" stroke="var(--line)" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h*.66}" y2="${h*.66}" stroke="var(--line)" vector-effect="non-scaling-stroke"/><line x1="0" x2="${w}" y1="${h}" y2="${h}" stroke="var(--axis)" vector-effect="non-scaling-stroke"/><polygon points="${area}" fill="var(--accent)" opacity=".12"/><polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>${hits}</svg><div class="axis"><span>${label(0)}</span><span>peak ${fmt(Math.max(...vals))}/day</span><span>${label(vals.length-1)}</span></div></div>`;
+}
+function spark(vals){
+  const max=Math.max(...vals), min=Math.min(...vals), w=80, h=22;
+  const p=vals.map((v,i)=>(i/(vals.length-1)*w).toFixed(1)+','+(h-2-(v-min)/(max-min||1)*(h-4)).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" width="80" height="22" preserveAspectRatio="none" aria-hidden="true"><polyline points="${p}" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+/* ---------- top bar ---------- */
+function renderTop(){
+  const ops=S.role==='ops';
+  $('#topbar').innerHTML=`<div class="logo"><i></i>Brand Hub</div>
+  ${ops?`<nav aria-label="Main"><button data-act="nav" data-p="portfolio" ${['portfolio','brand'].includes(S.page)?'aria-current="page"':''}>Brands</button><button data-act="nav" data-p="requests" ${S.page==='requests'?'aria-current="page"':''}>Supplier requests${openReqs0()?` <span class="tag">${openReqs0()}</span>`:''}</button><button data-act="nav" data-p="inventory" ${S.page==='inventory'?'aria-current="page"':''}>Inventory</button></nav>`:`<span class="small">Supplier portal</span>`}
+  <span class="spacer"></span>
+  ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
+  <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Ops team</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
+}
+const openReqs0=()=>requests.filter(openReqs).length;
+
+/* ---------- portfolio ---------- */
+function filteredBrands(){
+  let l=brands.filter(b=>(!S.q||b.name.toLowerCase().includes(S.q.toLowerCase()))&&(!S.mode||b.mode===S.mode)&&(S.supplier===''||b.supplier==S.supplier)&&(!S.health||b.health===S.health));
+  const hv={red:0,yellow:1,green:2}, k=S.sort;
+  const val=b=>k==='name'?b.name:k==='health'?hv[b.health]:k==='stock'?b.stockout*10+b.lowCover:k==='req'?requests.filter(r=>r.brandId===b.id&&openReqs(r)).length:k==='returns'?b.returnRate:k==='roas'?(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend):b.revenue;
+  l.sort((a,b)=>{const x=val(a),y=val(b);return (x>y?1:x<y?-1:0)*S.dir});
+  return l;
+}
+function brandTable(){
+  const l=filteredBrands(), shown=l.slice(0,S.show);
+  const th=(k,label,cls='')=>`<th class="${cls}" aria-sort="${S.sort===k?(S.dir>0?'ascending':'descending'):'none'}"><button data-act="sort" data-k="${k}">${label}${S.sort===k?(S.dir>0?' ↑':' ↓'):''}</button></th>`;
+  return `<div class="small" style="margin-bottom:8px">${l.length} of ${brands.length} brands</div>
+  <div class="tablewrap"><table><thead><tr>${th('name','Brand')}<th>Fulfillment</th><th>Supplier</th>${th('revenue','Revenue (30d)','num')}<th>Trend</th>${th('returns','Returns','num')}${th('roas','Ad ROAS','num')}${th('stock','Stock risk')}${th('req','Open requests','num')}${th('health','Health')}<th>Sync</th></tr></thead><tbody>
+  ${shown.map(b=>{const o=requests.filter(r=>r.brandId===b.id&&openReqs(r)).length, od=requests.some(r=>r.brandId===b.id&&isOverdue(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
+    return `<tr data-act="brand" data-id="${b.id}" tabindex="0"><td><div class="name">${esc(b.name)}</div><div class="small">Tier ${b.tier} · ${esc(b.owner)}</div></td><td><span class="tag">${b.mode==='dropship'?'Dropship':'Warehouse'}</span></td><td>${esc(supName(b.supplier))}</td><td class="num">${money(b.revenue)}<div class="small">${dpct(b.delta)}</div></td><td>${spark(b.series)}</td><td class="num">${pct(b.returnRate)}</td><td class="num">${roas.toFixed(1)}x</td><td>${b.stockout?`<span class="pill crit"><b>✕</b>${b.stockout} out</span>`:b.lowCover?`<span class="pill warn"><b>!</b>${b.lowCover} low</span>`:`<span class="small">None</span>`}</td><td class="num">${o?`<span class="${od?'down':''}">${od?'! ':''}${o}</span>`:'<span class="small">0</span>'}</td><td>${hpill(b.health)}</td><td>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:`<span class="small">${b.syncMin} min ago</span>`}</td></tr>`}).join('')||''}
+  </tbody></table>${l.length===0?'<div class="empty">No brands match those filters.</div>':''}</div>
+  ${l.length>S.show?`<div style="text-align:center;margin-top:12px"><button class="btn" data-act="more">Show ${Math.min(20,l.length-S.show)} more</button></div>`:''}`;
+}
+function renderPortfolio(){
+  const tot=brands.reduce((a,b)=>a+b.revenue,0), orders=brands.reduce((a,b)=>a+b.orders,0);
+  const prev=brands.reduce((a,b)=>a+b.revenue/(1+b.delta),0);
+  const rr=brands.reduce((a,b)=>a+b.returnRate*b.orders,0)/orders;
+  const open=requests.filter(openReqs).length, od=requests.filter(isOverdue).length;
+  const stale=brands.filter(b=>b.syncMin>120).length, skuRisk=brands.reduce((a,b)=>a+b.stockout,0);
+  const daily=Array.from({length:30},(_,d)=>brands.reduce((a,b)=>a+b.series[d],0));
+  const red=brands.filter(b=>b.health==='red').length, yel=brands.filter(b=>b.health==='yellow').length;
+  return `<div class="head"><div><h1>Portfolio</h1><p class="sub">${brands.length} brands, each on its own Shopify store. Last 30 days, Sep 12 to Oct 11.</p></div><button class="btn primary" data-act="newreq">+ New supplier request</button></div>
+  <div class="grid kpis">
+    <div class="card kpi"><h3>Revenue</h3><div class="v">${money(tot)}</div><div class="d">${dpct(tot/prev-1)} vs previous 30 days</div></div>
+    <div class="card kpi"><h3>Orders</h3><div class="v">${orders.toLocaleString()}</div><div class="d">Return rate ${pct(rr)}</div></div>
+    <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Open supplier requests</h3><div class="v">${open}</div><div class="d ${od?'down':''}">${od?'! '+od+' overdue':'None overdue'}</div></button></div>
+    <div class="card kpi"><button data-act="nav" data-p="inventory"><h3>Out-of-stock SKUs</h3><div class="v">${skuRisk}</div><div class="d">across ${brands.filter(b=>b.stockout).length} brands</div></button></div>
+    <div class="card kpi"><h3>Store connections</h3><div class="v">${brands.length-stale}<span class="small"> / ${brands.length}</span></div><div class="d ${stale?'down':''}">${stale?'! '+stale+' not syncing':'All syncing'}</div></div>
+  </div>
+  <div class="grid two" style="margin-bottom:20px">
+    <div class="card"><h2>Portfolio revenue per day</h2><p class="small" style="margin:2px 0 10px">Sum across all ${brands.length} stores. Hover for a day.</p>${lineChart(daily,money,dayLabel)}</div>
+    <div class="card"><h2>Brand health</h2><p class="small" style="margin:2px 0 10px">Set by partner success. Starts from returns, stock and sales trend.</p>
+      <div class="list"><div><span>${hpill('red')}</span><b>${red}</b></div><div><span>${hpill('yellow')}</span><b>${yel}</b></div><div><span>${hpill('green')}</span><b>${brands.length-red-yel}</b></div></div></div>
+  </div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search brands" aria-label="Search brands" value="${esc(S.q)}">
+    <select id="fmode" aria-label="Fulfillment mode"><option value="">All fulfillment</option><option value="dropship" ${S.mode==='dropship'?'selected':''}>Dropship</option><option value="warehouse" ${S.mode==='warehouse'?'selected':''}>Warehouse</option></select>
+    <select id="fsup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplier==s.id&&S.supplier!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+    <select id="fhealth" aria-label="Health"><option value="">All health</option><option value="red" ${S.health==='red'?'selected':''}>At risk</option><option value="yellow" ${S.health==='yellow'?'selected':''}>Watch</option><option value="green" ${S.health==='green'?'selected':''}>Healthy</option></select>
+  </div>
+  <div id="tbl">${brandTable()}</div>`;
+}
+
+/* ---------- brand drill-down ---------- */
+function renderBrand(){
+  const b=brandById(S.brandId), sup=supName(b.supplier);
+  const tabs=[['overview','Overview'],['inventory','Inventory'],['orders','Orders & returns'],['requests','Supplier requests'],['marketing','Marketing'],['ps','Partner success']];
+  return `<button class="back" data-act="nav" data-p="portfolio">← All brands</button>
+  <div class="head"><div><h1>${esc(b.name)}</h1><p class="sub">${esc(b.slug)}.myshopify.com · Tier ${b.tier} · ${b.mode==='dropship'?'Dropship':'Ships to our warehouse'} via ${esc(sup)}</p></div><div class="row">${hpill(b.health)}<button class="btn primary" data-act="newreq" data-id="${b.id}">+ New supplier request</button></div></div>
+  <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}${t[0]==='requests'?` <span class="tag">${requests.filter(r=>r.brandId===b.id).length}</span>`:''}</button>`).join('')}</div>
+  ${({overview:tabOverview,inventory:tabInventory,orders:tabOrders,requests:tabRequests,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
+}
+function tabOverview(b){
+  const rq=requests.filter(r=>r.brandId===b.id&&openReqs(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
+  return `<div class="grid kpis"><div class="card kpi"><h3>Revenue (30d)</h3><div class="v">${money(b.revenue)}</div><div class="d">${dpct(b.delta)} vs previous</div></div>
+  <div class="card kpi"><h3>Orders</h3><div class="v">${b.orders.toLocaleString()}</div><div class="d">AOV ${money0(b.aov)}</div></div>
+  <div class="card kpi"><h3>Return rate</h3><div class="v">${pct(b.returnRate)}</div><div class="d">${b.returnRate>.075?'Above 7.5% target':'Within target'}</div></div>
+  <div class="card kpi"><h3>Ad ROAS</h3><div class="v">${roas.toFixed(1)}x</div><div class="d">Meta + Google</div></div></div>
+  <div class="grid two" style="margin-bottom:12px"><div class="card"><h2>Revenue per day</h2><p class="small" style="margin:2px 0 10px">Hover a bar for the day.</p>${barChart(b.series,money,dayLabel)}</div>
+  <div class="card"><h2>Brand profile</h2><dl style="margin-top:10px"><dt>Shopify store</dt><dd class="mono">${esc(b.slug)}.myshopify.com</dd><dt>Vendor value</dt><dd class="mono">${esc(b.name)}</dd><dt>Supplier</dt><dd>${esc(supName(b.supplier))}</dd><dt>Fulfillment</dt><dd>${b.mode==='dropship'?'Dropship: supplier ships to customer':'Supplier ships to our warehouse'}</dd><dt>Partner success</dt><dd>${esc(b.owner)}</dd><dt>Currency</dt><dd>${b.currency}</dd><dt>Contract renews</dt><dd>${b.renewal.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</dd><dt>Last sync</dt><dd>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:b.syncMin+' min ago'}</dd></dl></div></div>
+  <div class="grid three"><div class="card"><h2>Open supplier requests</h2>${rq.length?`<div class="list">${rq.map(r=>`<div><span><b>${r.id}</b> <span class="small">${typeLabel(r.type,b)} · #${r.orderNo}</span></span>${spill(r)}</div>`).join('')}</div>`:'<p class="small">Nothing open.</p>'}</div>
+  <div class="card"><h2>Stock alerts</h2>${b.skus.filter(s=>stockState(s)[0]!=='good').length?`<div class="list">${b.skus.filter(s=>stockState(s)[0]!=='good').map(s=>{const x=stockState(s);return `<div><span>${esc(s.name)}<div class="small mono">${s.sku}</div></span><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></div>`}).join('')}</div>`:'<p class="small">All SKUs healthy.</p>'}</div>
+  <div class="card"><h2>Partner success</h2><p class="small" style="margin:6px 0">Last check-in ${b.lastCheckin} days ago by ${esc(b.owner)}</p><p style="margin:0"><b>Next step:</b> ${esc(b.nextStep)}</p></div></div>`;
+}
+function invTable(skus,showBrand){
+  return `<div class="tablewrap"><table><thead><tr>${showBrand?'<th>Brand</th>':''}<th>Product</th><th>SKU</th><th>Held at</th><th class="num">On hand</th><th class="num">Incoming</th><th class="num">Sells/day</th><th>Days of cover</th><th>Status</th></tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${s.vel}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
+}
+function tabInventory(b){
+  return `<p class="small" style="margin:0 0 12px">${b.mode==='dropship'?`Stock is held by ${esc(supName(b.supplier))}. They update counts in the portal or by CSV, and the hub syncs them to Shopify.`:'Stock is in our warehouse. Counts come straight from Shopify.'}</p>${invTable(b.skus.map(s=>Object.assign({b},s)),false)}`;
+}
+function tabOrders(b){
+  const st={Fulfilled:'info',Delivered:'good','In transit':'info','Awaiting supplier':'idle',Returned:'warn',Cancelled:'crit'}, ic={good:'✓',info:'→',idle:'○',warn:'↩',crit:'✕'};
+  return `<div class="tablewrap"><table><thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th>Status</th><th>Placed</th><th></th></tr></thead><tbody>${b.orderRows.map(o=>`<tr><td class="mono">#${o.no}</td><td>${esc(o.cust)}</td><td class="num">${money0(o.total)}</td><td><span class="pill ${st[o.status]}"><b>${ic[st[o.status]]}</b>${o.status}</span></td><td class="small">${o.days===0?'Today':o.days+' days ago'}</td><td style="text-align:right"><button class="btn sm" data-act="newreq" data-id="${b.id}" data-no="${o.no}">Request return or cancel</button></td></tr>`).join('')}</tbody></table></div>
+  <p class="small" style="margin-top:10px">Orders sync from Shopify. Requests made here go to ${esc(supName(b.supplier))}.</p>`;
+}
+function reqTable(list,showBrand=true){
+  return `<div class="tablewrap"><table><thead><tr><th>Request</th>${showBrand?'<th>Brand</th>':''}<th>Order</th><th>Supplier</th><th>Created</th><th>Status</th><th>Tracking</th></tr></thead><tbody>${list.map(r=>{const b=brandById(r.brandId);return `<tr data-act="openreq" data-id="${r.id}" tabindex="0"><td><div class="name">${r.id}</div><div class="small">${typeLabel(r.type,b)}</div></td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td class="mono">#${r.orderNo}</td><td>${esc(supName(r.supplier))}</td><td class="small">${ago(r.hoursAgo)}</td><td>${spill(r)}</td><td class="mono">${r.tracking||'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No requests yet.</div>'}</div>`;
+}
+const tabRequests=b=>reqTable(requests.filter(r=>r.brandId===b.id).sort((a,c)=>a.hoursAgo-c.hoursAgo),false);
+function tabMarketing(b){
+  const m=b.meta,g=b.google,e=b.email, spend=m.spend+g.spend, rev=m.rev+g.rev, mer=(m.rev+g.rev+e.rev)/spend;
+  const row=(n,c,sp,rv,ow,extra)=>`<tr><td class="name">${n}</td><td class="num">${sp?money(sp):'–'}</td><td class="num">${money(rv)}</td><td class="num">${sp?(rv/sp).toFixed(1)+'x':'–'}</td><td>${esc(ow)}</td><td class="small">${extra}</td></tr>`;
+  const mx=Math.max(m.rev,g.rev,e.rev);
+  return `<div class="grid kpis"><div class="card kpi"><h3>Ad spend (30d)</h3><div class="v">${money(spend)}</div><div class="d">Meta + Google</div></div><div class="card kpi"><h3>Ad-attributed revenue</h3><div class="v">${money(rev)}</div><div class="d">ROAS ${(rev/spend).toFixed(1)}x</div></div><div class="card kpi"><h3>Email revenue</h3><div class="v">${money(e.rev)}</div><div class="d">${e.sends} sends this month</div></div><div class="card kpi"><h3>Blended MER</h3><div class="v">${mer.toFixed(1)}x</div><div class="d">All channel revenue ÷ ad spend</div></div></div>
+  <div class="tablewrap" style="margin-bottom:12px"><table><thead><tr><th>Channel</th><th class="num">Spend</th><th class="num">Revenue</th><th class="num">ROAS</th><th>Team owner</th><th>Notes</th></tr></thead><tbody>${row('Meta',0,m.spend,m.rev,m.owner,'Prospecting + retargeting')}${row('Google',0,g.spend,g.rev,g.owner,'Shopping + brand search')}${row('Email',0,0,e.rev,e.owner,'List '+e.list.toLocaleString()+' subscribers')}</tbody></table></div>
+  <div class="card"><h2>Revenue by channel</h2><div class="list" style="margin-top:8px">${[['Meta',m.rev],['Google',g.rev],['Email',e.rev]].map(x=>`<div style="flex-wrap:nowrap"><span style="width:70px">${x[0]}</span><div class="bar" style="flex:1"><span style="width:${x[1]/mx*100}%"></span></div><span class="small" style="width:60px;text-align:right">${money(x[1])}</span></div>`).join('')}</div>
+  ${b.stockout?`<p class="small" style="margin:12px 0 0"><span class="pill warn"><b>!</b>${b.stockout} SKU${b.stockout>1?'s':''} out of stock</span> Marketing teams can pause ads on these products.</p>`:''}</div>
+  <p class="small" style="margin-top:10px">In the real build, spend and revenue come from the Meta Ads, Google Ads and email platform APIs, matched to this brand's ad accounts.</p>`;
+}
+function tabPS(b){
+  return `<div class="grid two"><div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2>Check-in notes</h2></div>
+  <div class="field"><label for="psnote">Add a note</label><textarea id="psnote" rows="3" placeholder="What did you discuss? What's next?"></textarea></div><button class="btn primary" data-act="addnote" data-id="${b.id}">Save note</button>
+  <ul class="timeline" style="margin-top:18px">${b.notes.map(n=>`<li><div><div class="small"><b>${esc(n.who)}</b> · ${esc(n.when)}</div><div>${esc(n.text)}</div></div></li>`).join('')}</ul></div>
+  <div class="grid" style="align-content:start"><div class="card"><h2>Health</h2><div class="field" style="margin-top:10px"><label for="hsel">Set manually</label><select id="hsel" data-id="${b.id}"><option value="green" ${b.health==='green'?'selected':''}>Healthy</option><option value="yellow" ${b.health==='yellow'?'selected':''}>Watch</option><option value="red" ${b.health==='red'?'selected':''}>At risk</option></select></div><p class="small" style="margin:0">Last check-in ${b.lastCheckin} days ago</p></div>
+  <div class="card"><h2>Tasks</h2><div class="list" style="margin-top:6px">${b.tasks.map((t,i)=>`<div style="justify-content:flex-start"><input type="checkbox" id="t${i}" data-act="task" data-id="${b.id}" data-i="${i}" ${t.done?'checked':''}><label for="t${i}" style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${esc(t.t)}</label></div>`).join('')}</div></div></div></div>`;
+}
+
+/* ---------- ops requests & inventory ---------- */
+function renderRequests(){
+  const all=requests.slice().sort((a,b)=>a.hoursAgo-b.hoursAgo);
+  const cnt={notified:all.filter(r=>r.status==='notified'&&!isOverdue(r)).length,overdue:all.filter(isOverdue).length,ack:all.filter(r=>r.status==='ack').length,done:all.filter(r=>r.status==='done').length,declined:all.filter(r=>r.status==='declined').length};
+  const f=all.filter(r=>(!S.rq||(S.rq==='overdue'?isOverdue(r):S.rq==='notified'?(r.status==='notified'&&!isOverdue(r)):r.status===S.rq))&&(!S.rtype||r.type===S.rtype)&&(S.rsup===''||r.supplier==S.rsup));
+  const chip=(k,l)=>`<button class="chip" data-act="rq" data-k="${k}" aria-pressed="${S.rq===k}">${l}${k?` · ${cnt[k]}`:''}</button>`;
+  return `<div class="head"><div><h1>Supplier requests</h1><p class="sub">Orders, returns and cancellations sent to suppliers. Suppliers are notified automatically and reply in their portal.</p></div><button class="btn primary" data-act="newreq">+ New supplier request</button></div>
+  <div class="chips">${chip('','All')}${chip('overdue','Overdue')}${chip('notified','Awaiting supplier')}${chip('ack','In progress')}${chip('done','Completed')}${chip('declined','Cannot cancel')}</div>
+  <div class="filters"><select id="rtype" aria-label="Type"><option value="">All types</option><option value="order" ${S.rtype==='order'?'selected':''}>Orders</option><option value="return" ${S.rtype==='return'?'selected':''}>Returns</option><option value="cancellation" ${S.rtype==='cancellation'?'selected':''}>Cancellations</option></select>
+  <select id="rsup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.rsup==s.id&&S.rsup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+  ${reqTable(f)}`;
+}
+function renderInventory(){
+  let skus=[];brands.forEach(b=>b.skus.forEach(s=>skus.push(Object.assign({b},s))));
+  const total=skus.length, out=skus.filter(s=>s.onHand===0).length, low=skus.filter(s=>stockState(s)[0]==='warn').length;
+  skus=skus.filter(s=>(!S.invQ||(s.name+s.sku+s.b.name).toLowerCase().includes(S.invQ.toLowerCase()))&&(S.invRisk!=='risk'||stockState(s)[0]!=='good')&&(!S.invBrand||s.b.mode===S.invBrand));
+  skus.sort((a,b)=>stockCover(a)-stockCover(b));
+  return `<div class="head"><div><h1>Inventory</h1><p class="sub">Every SKU across ${brands.length} stores, lowest days of cover first.</p></div></div>
+  <div class="grid kpis"><div class="card kpi"><h3>SKUs tracked</h3><div class="v">${total}</div></div><div class="card kpi"><h3>Out of stock</h3><div class="v down">${out}</div></div><div class="card kpi"><h3>Running low</h3><div class="v">${low}</div><div class="d">under 10 days of cover</div></div></div>
+  <div class="filters"><input type="search" id="invq" placeholder="Search brand, product or SKU" aria-label="Search inventory" value="${esc(S.invQ)}"><select id="invrisk" aria-label="Show"><option value="risk" ${S.invRisk==='risk'?'selected':''}>Out of stock and low</option><option value="all" ${S.invRisk==='all'?'selected':''}>All SKUs</option></select><select id="invmode" aria-label="Held at"><option value="">All locations</option><option value="dropship" ${S.invBrand==='dropship'?'selected':''}>Held by supplier</option><option value="warehouse" ${S.invBrand==='warehouse'?'selected':''}>Our warehouse</option></select></div>
+  <div id="invtbl">${invTable(skus.slice(0,60),true)}</div>${skus.length>60?`<p class="small">Showing 60 of ${skus.length}. Narrow with search.</p>`:''}`;
+}
+
+/* ---------- supplier portal ---------- */
+function renderSupplier(){
+  const sid=S.supplierId, mine=requests.filter(r=>r.supplier===sid).sort((a,b)=>b.hoursAgo-a.hoursAgo);
+  const todo=mine.filter(r=>r.status==='notified'||r.status==='ack'), done=mine.filter(r=>!todo.includes(r));
+  const s=SUPPLIERS[sid], brandCount=new Set(brands.filter(b=>b.supplier===sid).map(b=>b.id)).size;
+  return `<div class="head"><div><h1>Hi, ${esc(s.name)}</h1><p class="sub">${todo.length} request${todo.length===1?'':'s'} need your action · you supply ${brandCount} brands</p></div></div>
+  <div class="supbanner"><b>Opened from your WhatsApp link.</b> No password needed. You only see requests assigned to ${esc(s.name)}.</div>
+  ${todo.length?`<div class="grid">${todo.map(supCard).join('')}</div>`:'<div class="card empty">You are all caught up.</div>'}
+  <h2 style="margin:28px 0 12px">Completed</h2>
+  ${done.length?`<div class="grid">${done.map(supCard).join('')}</div>`:'<p class="small">Nothing completed yet.</p>'}`;
+}
+function supCard(r){
+  const b=brandById(r.brandId), it=r.items[0], od=isOverdue(r);
+  let action='';
+  if(r.status==='notified'){
+    action=`<button class="btn primary" data-act="ack" data-id="${r.id}">Acknowledge</button>`;
+  }else if(r.status==='ack'){
+    if(r.type==='return') action=`<div class="upl" style="flex:1;min-width:260px"><div class="field" style="margin:0;flex:1;min-width:200px"><label for="f-${r.id}">Return shipping label (PDF)</label><input type="file" id="f-${r.id}" accept="application/pdf,image/*"></div></div><div class="field" style="margin:0"><label for="c-${r.id}">Carrier</label><select id="c-${r.id}"><option>UPS</option><option>USPS</option><option>FedEx</option><option>DHL</option></select></div><div class="field" style="margin:0"><label for="t-${r.id}">Tracking number</label><input type="text" id="t-${r.id}" placeholder="1Z999AA10123456784"></div><button class="btn primary" data-act="submitreturn" data-id="${r.id}">Send to customer</button>`;
+    else if(r.type==='order') action=`<div class="field" style="margin:0"><label for="c-${r.id}">Carrier</label><select id="c-${r.id}"><option>UPS</option><option>USPS</option><option>FedEx</option><option>DHL</option></select></div><div class="field" style="margin:0"><label for="t-${r.id}">Tracking number</label><input type="text" id="t-${r.id}" placeholder="1Z999AA10123456784"></div><button class="btn primary" data-act="submitship" data-id="${r.id}">${b.mode==='warehouse'?'Mark shipped to warehouse':'Mark shipped'}</button>`;
+    else action=`<button class="btn primary" data-act="cxlok" data-id="${r.id}">Confirm: not shipped, cancel it</button><button class="btn" data-act="cxlno" data-id="${r.id}">Already shipped</button>`;
+  }else{
+    action=`<div class="small">${r.status==='declined'?esc(r.note):`${esc(r.carrier)} · <span class="mono">${esc(r.tracking)}</span>${r.label?` · ${esc(r.label)}`:''}`}</div>`;
+  }
+  return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span></div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
+  <div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>
+  <div class="acts">${action}</div></div>`;
+}
+
+/* ---------- overlays ---------- */
+function reqDrawer(id){
+  const r=requests.find(x=>x.id===id), b=brandById(r.brandId), s=SUPPLIERS[r.supplier], link='hub.example.com/s/'+btoa(r.id).replace(/=/g,'').toLowerCase()+'x7';
+  const verb={order:b.mode==='warehouse'?'replenishment order':'order',return:'return',cancellation:'cancellation'}[r.type];
+  const ev=r.events.slice().sort((a,c)=>a.ago-c.ago);
+  $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" role="dialog" aria-label="Request ${r.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${r.id}</h2><div class="small">${typeLabel(r.type,b)} · ${esc(b.name)}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div style="margin:14px 0">${spill(r)}</div>
+  <dl><dt>Order</dt><dd class="mono">#${r.orderNo}</dd><dt>Item</dt><dd>${r.items[0].qty} × ${esc(r.items[0].name)} <span class="mono small">${r.items[0].sku}</span></dd><dt>Reason</dt><dd>${esc(r.reason)}</dd><dt>Supplier</dt><dd>${esc(s.name)}</dd>${r.carrier?`<dt>Carrier</dt><dd>${esc(r.carrier)}</dd><dt>Tracking</dt><dd class="mono">${esc(r.tracking)}</dd>`:''}${r.label?`<dt>Label</dt><dd>${esc(r.label)}</dd>`:''}${r.note?`<dt>Supplier note</dt><dd>${esc(r.note)}</dd>`:''}</dl>
+  <h3 style="margin:20px 0 8px">What the supplier received</h3>
+  <div class="msg"><div class="k">WhatsApp</div>New ${verb} for ${esc(b.name)}, order #${r.orderNo}. ${r.items[0].qty} × ${esc(r.items[0].name)}. Open to respond: ${link}</div>
+  <div class="msg"><div class="k">Email to ${esc(s.email)}</div><b>[Brand Hub] ${typeLabel(r.type,b)} ${r.id} · ${esc(b.name)}</b><br>Please acknowledge and ${r.type==='return'?'upload the return label and tracking number':r.type==='order'?'add tracking once shipped':'confirm the order has not shipped'}. ${link}</div>
+  ${r.status==='notified'||r.status==='ack'?`<button class="btn" data-act="remind" data-id="${r.id}">Send reminder</button>`:''}
+  <h3 style="margin:22px 0 10px">Activity</h3><ul class="timeline">${ev.map(e=>`<li class="${e.sys?'sys':''}"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
+}
+function newReqModal(preBrand,preNo){
+  const b=brandById(preBrand!=null?preBrand:S.page==='brand'?S.brandId:0);
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="New supplier request"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">New supplier request</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div class="field"><label for="nb">Brand</label><select id="nb">${brands.map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+  <div id="nbinfo" class="small" style="margin:-4px 0 12px"></div>
+  <div class="field"><label for="nt">Request type</label><select id="nt"><option value="return">Return</option><option value="cancellation">Cancellation</option><option value="order">Order</option></select></div>
+  <div class="field"><label for="no">Shopify order number</label><input type="text" id="no" value="${preNo?'#'+preNo:''}" placeholder="#1043"></div>
+  <div class="field"><label for="ns">Item</label><select id="ns"></select></div>
+  <div class="field"><label for="nq">Quantity</label><input type="text" id="nq" value="1" inputmode="numeric"></div>
+  <div class="field"><label for="nr">Reason</label><select id="nr"><option>Item arrived damaged</option><option>Wrong item sent</option><option>Customer changed their mind</option><option>Customer order</option><option>Restock for upcoming campaign</option></select></div>
+  <div id="nerr" class="small down" style="min-height:18px"></div>
+  <button class="btn primary" data-act="createreq" style="width:100%">Send to supplier</button></div></div>`;
+  fillNewReq();
+}
+function fillNewReq(){
+  const b=brandById(+$('#nb').value);
+  $('#ns').innerHTML=b.skus.map((s,i)=>`<option value="${i}">${esc(s.name)} (${s.sku})</option>`).join('');
+  $('#nbinfo').textContent=`${supName(b.supplier)} will be notified by email and WhatsApp. ${b.mode==='dropship'?'This brand ships direct to customers.':'This brand ships to our warehouse.'}`;
+}
+
+/* ---------- actions ---------- */
+function updateReq(id,fn,evt,sys){const r=requests.find(x=>x.id===id);fn(r);if(evt)r.events.unshift({t:evt,ago:0,sys});}
+const ACTIONS={
+  nav:e=>{S.page=e.dataset.p;if(S.page==='portfolio')S.brandId=null;render();window.scrollTo(0,0)},
+  role:e=>{S.role=e.dataset.r;if(S.role==='ops'&&S.page==='brand')S.page='portfolio';render()},
+  brand:e=>{S.brandId=+e.dataset.id;S.page='brand';S.tab='overview';render();window.scrollTo(0,0)},
+  tab:e=>{S.tab=e.dataset.t;render()},
+  sort:e=>{const k=e.dataset.k;S.dir=S.sort===k?-S.dir:(k==='name'||k==='health'?1:-1);S.sort=k;$('#tbl').innerHTML=brandTable()},
+  more:()=>{S.show+=20;$('#tbl').innerHTML=brandTable()},
+  openreq:e=>reqDrawer(e.dataset.id),
+  closelayer:(e,ev)=>{if(ev.target===e)$('#layer').innerHTML=''},
+  closelayer2:()=>{$('#layer').innerHTML=''},
+  rq:e=>{S.rq=e.dataset.k;render()},
+  newreq:e=>newReqModal(e.dataset.id!=null?+e.dataset.id:null,e.dataset.no),
+  remind:e=>{updateReq(e.dataset.id,()=>{},'Reminder sent by WhatsApp',false);reqDrawer(e.dataset.id);toast('Reminder sent by WhatsApp')},
+  addnote:e=>{const v=$('#psnote').value.trim();if(!v){toast('Write a note first');return}const b=brandById(+e.dataset.id);b.notes.unshift({who:'You',when:'Just now',text:v});b.lastCheckin=0;render();toast('Note saved')},
+  task:e=>{const b=brandById(+e.dataset.id);b.tasks[+e.dataset.i].done=e.checked;render()},
+  createreq:()=>{
+    const b=brandById(+$('#nb').value), no=$('#no').value.replace(/\D/g,''), q=parseInt($('#nq').value,10);
+    if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
+    if(!(q>0)){$('#nerr').textContent='Quantity must be 1 or more.';return}
+    const sk=b.skus[+$('#ns').value];
+    const r=mkReq({type:$('#nt').value,brandId:b.id,supplier:b.supplier,orderNo:no,items:[{sku:sk.sku,name:sk.name,qty:q}],reason:$('#nr').value,by:'You',hoursAgo:0});
+    requests.unshift(r);render();reqDrawer(r.id);toast('Supplier notified by email and WhatsApp');
+  },
+  /* supplier */
+  ack:e=>{updateReq(e.dataset.id,r=>r.status='ack','Supplier acknowledged');render();toast('Acknowledged')},
+  submitreturn:e=>{
+    const id=e.dataset.id, t=$('#t-'+id).value.trim(), f=$('#f-'+id).files[0];
+    if(!f){toast('Upload the return label first');return}
+    if(!t){toast('Enter the tracking number');return}
+    updateReq(id,r=>{r.status='done';r.tracking=t;r.carrier=$('#c-'+id).value;r.label=f.name},`Supplier uploaded return label (${f.name}) and tracking ${t}`);
+    updateReq(id,()=>{},'Label attached to the Shopify return and emailed to the customer',true);render();toast('Sent. The customer gets the label by email.');
+  },
+  submitship:e=>{
+    const id=e.dataset.id, t=$('#t-'+id).value.trim();
+    if(!t){toast('Enter the tracking number');return}
+    updateReq(id,r=>{r.status='done';r.tracking=t;r.carrier=$('#c-'+id).value},`Supplier marked shipped with tracking ${t}`);
+    updateReq(id,()=>{},'Fulfillment created in Shopify with tracking',true);render();toast('Marked shipped. Shopify is updated.');
+  },
+  cxlok:e=>{updateReq(e.dataset.id,r=>{r.status='done';r.carrier='n/a';r.tracking='Cancelled'},'Supplier confirmed not shipped');updateReq(e.dataset.id,()=>{},'Order cancelled and refunded in Shopify',true);render();toast('Cancellation confirmed')},
+  cxlno:e=>{updateReq(e.dataset.id,r=>{r.status='declined';r.note='Already shipped. Cannot cancel.'},'Supplier replied: already shipped, cannot cancel');render();toast('Ops team has been told')},
+};
+document.addEventListener('click',ev=>{
+  const el=ev.target.closest('[data-act]');if(!el)return;
+  if(el.matches('input[type=checkbox]'))return;
+  const f=ACTIONS[el.dataset.act];if(f){if(el.dataset.act==='closelayer'&&ev.target!==el)return;f(el,ev)}
+});
+document.addEventListener('change',ev=>{
+  const t=ev.target;
+  if(t.dataset.act==='task'){ACTIONS.task(t);return}
+  if(t.id==='supsel'){S.supplierId=+t.value;render()}
+  else if(t.id==='fmode'){S.mode=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
+  else if(t.id==='fsup'){S.supplier=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
+  else if(t.id==='fhealth'){S.health=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
+  else if(t.id==='rtype'){S.rtype=t.value;render()}
+  else if(t.id==='rsup'){S.rsup=t.value;render()}
+  else if(t.id==='invrisk'){S.invRisk=t.value;render()}
+  else if(t.id==='invmode'){S.invBrand=t.value;render()}
+  else if(t.id==='hsel'){const b=brandById(+t.dataset.id);b.health=t.value;toast('Health set to '+HEALTH[b.health][2]);render()}
+  else if(t.id==='nb')fillNewReq();
+});
+document.addEventListener('input',ev=>{
+  if(ev.target.id==='q'){S.q=ev.target.value;S.show=20;$('#tbl').innerHTML=brandTable()}
+  if(ev.target.id==='invq'){S.invQ=ev.target.value;const p=ev.target.selectionStart;render();const i=$('#invq');i.focus();i.setSelectionRange(p,p)}
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Enter'&&ev.target.matches('tr[data-act]'))ACTIONS[ev.target.dataset.act](ev.target,ev);
+  if(ev.key==='Escape')$('#layer').innerHTML='';
+});
+const tip=$('#tip');
+document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.closest('[data-tip]');if(t){tip.textContent=t.dataset.tip;tip.style.opacity=1;tip.style.left=ev.clientX+'px';tip.style.top=ev.clientY+'px'}else tip.style.opacity=0});
+
+function render(){
+  renderTop();
+  $('#app').innerHTML=S.role==='supplier'?renderSupplier():S.page==='brand'?renderBrand():S.page==='requests'?renderRequests():S.page==='inventory'?renderInventory():renderPortfolio();
+  $('#layer').innerHTML='';
+}
+render();
+</script>
