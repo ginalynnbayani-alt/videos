@@ -4,6 +4,7 @@
 :root{
   --bg:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6f6d67;
   --line:#e1e0d9; --axis:#c3c2b7; --wash:#f0efec; --accent:#2a78d6; --accent-soft:#cde2fb; --on-accent:#ffffff;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
   --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --serious:#ec835a; --good-ink:#006300;
   --shadow:0 1px 2px rgba(11,11,11,.06),0 8px 24px rgba(11,11,11,.08);
   --sans:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -11,10 +12,12 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
   --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
   --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
   --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
   --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;padding-inline:16px}
@@ -165,12 +168,20 @@ for(let i=0;i<72;i++){
 }
 const rankSorted=[...brands].sort((a,b)=>b.revenue-a.revenue);
 rankSorted.forEach((b,i)=>b.tier=i<12?'A':i<40?'B':'C');
+/* COGS = (product cost + inbound freight & duties + packaging) × units sold. Shipping to customers and ad spend are not COGS. */
+const landed=s=>s.cost==null?null:s.cost+s.freight+s.pack;
+function recalc(b){let rev=0,cogs=0,miss=0;b.skus.forEach(s=>{const l=landed(s);if(l==null){miss++;return}rev+=s.u*s.price;cogs+=s.u*l});b.cogs=cogs;b.costedRev=rev;b.gp=rev-cogs;b.gm=rev?b.gp/rev:0;b.missCost=miss}
 brands.forEach(b=>{
-  const n=ri(5,8), nouns=NOUN[b.suffix];
+  const n=ri(5,8), nouns=NOUN[b.suffix], units=b.orders*(1.3+R()*.5), w=Array.from({length:n},()=>.3+R()), ws=w.reduce((a,c)=>a+c,0);
   for(let k=0;k<n;k++){
-    const vel=ri(1,14), onHand=R()<.1?0:ri(0,420), rp=vel*ri(10,18);
-    b.skus.push({sku:b.slug.slice(0,3).toUpperCase()+'-'+(100+k*7+ri(0,5)),name:pick(nouns)+(R()<.5?' · '+pick(['Small','Large','Sage','Sand','Ink']):''),onHand,incoming:R()<.35?ri(60,300):0,vel,rp,loc:b.mode==='dropship'?SUPPLIERS[b.supplier].name:'Our warehouse'});
+    const u=Math.max(3,Math.round(units*w[k]/ws)), vel=u/30, onHand=R()<.1?0:Math.round(vel*ri(3,60)), rp=Math.round(vel*14);
+    const price=(b.revenue/units)*(.55+R()*.9), cost=R()<.06?null:price*(.26+R()*.22);
+    b.skus.push({sku:b.slug.slice(0,3).toUpperCase()+'-'+(100+k*7+ri(0,5)),name:pick(nouns)+(R()<.5?' · '+pick(['Small','Large','Sage','Sand','Ink']):''),onHand,incoming:R()<.35?Math.round(vel*ri(14,45)):0,vel,rp,loc:b.mode==='dropship'?SUPPLIERS[b.supplier].name:'Our warehouse',u,price,cost,freight:cost==null?0:cost*(.03+R()*.07),pack:cost==null?0:.35+R()*1.1});
   }
+  /* scale prices so units sold × price matches the brand's revenue */
+  const tot=b.skus.reduce((a,s)=>a+s.u*s.price,0), f=b.revenue/tot;
+  b.skus.forEach(s=>{s.price=+(s.price*f).toFixed(2);if(s.cost!=null){s.cost=+(s.cost*f).toFixed(2);s.freight=+(s.freight*f).toFixed(2);s.pack=+s.pack.toFixed(2)}});
+  recalc(b);
   const st=['Fulfilled','Fulfilled','In transit','Delivered','Delivered','Awaiting supplier','Returned','Cancelled'];
   for(let k=0;k<8;k++){const s=pick(st);b.orderRows.push({no:1000+ri(100,9000),cust:pick(FIRST)+' '+String.fromCharCode(65+ri(0,25))+'.',total:Math.round(b.aov*(.6+R()*1.2)),status:s,days:k*ri(1,2)});}
   b.stockout=b.skus.filter(s=>s.onHand===0).length;
@@ -204,6 +215,9 @@ const S={role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'k':'$'+Math.round(n);
+const moneyS=n=>(n<0?'−':'')+money(Math.abs(n));
+const usd2=n=>'$'+n.toFixed(2);
+const fmtVel=v=>v<10?v.toFixed(1):String(Math.round(v));
 const money0=n=>'$'+Math.round(n).toLocaleString('en-US');
 const pct=(n,d=1)=>(n*100).toFixed(d)+'%';
 const dpct=n=>`<span class="${n>=0?'up':'down'}">${n>=0?'▲':'▼'} ${Math.abs(n*100).toFixed(0)}%</span>`;
@@ -254,7 +268,7 @@ const openReqs0=()=>requests.filter(openReqs).length;
 function filteredBrands(){
   let l=brands.filter(b=>(!S.q||b.name.toLowerCase().includes(S.q.toLowerCase()))&&(!S.mode||b.mode===S.mode)&&(S.supplier===''||b.supplier==S.supplier)&&(!S.health||b.health===S.health));
   const hv={red:0,yellow:1,green:2}, k=S.sort;
-  const val=b=>k==='name'?b.name:k==='health'?hv[b.health]:k==='stock'?b.stockout*10+b.lowCover:k==='req'?requests.filter(r=>r.brandId===b.id&&openReqs(r)).length:k==='returns'?b.returnRate:k==='roas'?(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend):b.revenue;
+  const val=b=>k==='name'?b.name:k==='health'?hv[b.health]:k==='stock'?b.stockout*10+b.lowCover:k==='req'?requests.filter(r=>r.brandId===b.id&&openReqs(r)).length:k==='returns'?b.returnRate:k==='gm'?b.gm:k==='roas'?(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend):b.revenue;
   l.sort((a,b)=>{const x=val(a),y=val(b);return (x>y?1:x<y?-1:0)*S.dir});
   return l;
 }
@@ -262,9 +276,9 @@ function brandTable(){
   const l=filteredBrands(), shown=l.slice(0,S.show);
   const th=(k,label,cls='')=>`<th class="${cls}" aria-sort="${S.sort===k?(S.dir>0?'ascending':'descending'):'none'}"><button data-act="sort" data-k="${k}">${label}${S.sort===k?(S.dir>0?' ↑':' ↓'):''}</button></th>`;
   return `<div class="small" style="margin-bottom:8px">${l.length} of ${brands.length} brands</div>
-  <div class="tablewrap"><table><thead><tr>${th('name','Brand')}<th>Fulfillment</th><th>Supplier</th>${th('revenue','Revenue (30d)','num')}<th>Trend</th>${th('returns','Returns','num')}${th('roas','Ad ROAS','num')}${th('stock','Stock risk')}${th('req','Open requests','num')}${th('health','Health')}<th>Sync</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr>${th('name','Brand')}<th>Fulfillment</th><th>Supplier</th>${th('revenue','Revenue (30d)','num')}<th>Trend</th>${th('gm','Gross margin','num')}${th('returns','Returns','num')}${th('roas','Ad ROAS','num')}${th('stock','Stock risk')}${th('req','Open requests','num')}${th('health','Health')}<th>Sync</th></tr></thead><tbody>
   ${shown.map(b=>{const o=requests.filter(r=>r.brandId===b.id&&openReqs(r)).length, od=requests.some(r=>r.brandId===b.id&&isOverdue(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
-    return `<tr data-act="brand" data-id="${b.id}" tabindex="0"><td><div class="name">${esc(b.name)}</div><div class="small">Tier ${b.tier} · ${esc(b.owner)}</div></td><td><span class="tag">${b.mode==='dropship'?'Dropship':'Warehouse'}</span></td><td>${esc(supName(b.supplier))}</td><td class="num">${money(b.revenue)}<div class="small">${dpct(b.delta)}</div></td><td>${spark(b.series)}</td><td class="num">${pct(b.returnRate)}</td><td class="num">${roas.toFixed(1)}x</td><td>${b.stockout?`<span class="pill crit"><b>✕</b>${b.stockout} out</span>`:b.lowCover?`<span class="pill warn"><b>!</b>${b.lowCover} low</span>`:`<span class="small">None</span>`}</td><td class="num">${o?`<span class="${od?'down':''}">${od?'! ':''}${o}</span>`:'<span class="small">0</span>'}</td><td>${hpill(b.health)}</td><td>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:`<span class="small">${b.syncMin} min ago</span>`}</td></tr>`}).join('')||''}
+    return `<tr data-act="brand" data-id="${b.id}" tabindex="0"><td><div class="name">${esc(b.name)}</div><div class="small">Tier ${b.tier} · ${esc(b.owner)}</div></td><td><span class="tag">${b.mode==='dropship'?'Dropship':'Warehouse'}</span></td><td>${esc(supName(b.supplier))}</td><td class="num">${money(b.revenue)}<div class="small">${dpct(b.delta)}</div></td><td>${spark(b.series)}</td><td class="num">${pct(b.gm,0)}${b.missCost?` <span class="down" data-tip="${b.missCost} SKU${b.missCost>1?'s':''} missing cost. Margin is overstated.">!</span>`:''}</td><td class="num">${pct(b.returnRate)}</td><td class="num">${roas.toFixed(1)}x</td><td>${b.stockout?`<span class="pill crit"><b>✕</b>${b.stockout} out</span>`:b.lowCover?`<span class="pill warn"><b>!</b>${b.lowCover} low</span>`:`<span class="small">None</span>`}</td><td class="num">${o?`<span class="${od?'down':''}">${od?'! ':''}${o}</span>`:'<span class="small">0</span>'}</td><td>${hpill(b.health)}</td><td>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:`<span class="small">${b.syncMin} min ago</span>`}</td></tr>`}).join('')||''}
   </tbody></table>${l.length===0?'<div class="empty">No brands match those filters.</div>':''}</div>
   ${l.length>S.show?`<div style="text-align:center;margin-top:12px"><button class="btn" data-act="more">Show ${Math.min(20,l.length-S.show)} more</button></div>`:''}`;
 }
@@ -275,10 +289,12 @@ function renderPortfolio(){
   const open=requests.filter(openReqs).length, od=requests.filter(isOverdue).length;
   const stale=brands.filter(b=>b.syncMin>120).length, skuRisk=brands.reduce((a,b)=>a+b.stockout,0);
   const daily=Array.from({length:30},(_,d)=>brands.reduce((a,b)=>a+b.series[d],0));
+  const cogsT=brands.reduce((a,b)=>a+b.cogs,0), gpT=brands.reduce((a,b)=>a+b.gp,0), crT=brands.reduce((a,b)=>a+b.costedRev,0), missT=brands.reduce((a,b)=>a+b.missCost,0);
   const red=brands.filter(b=>b.health==='red').length, yel=brands.filter(b=>b.health==='yellow').length;
   return `<div class="head"><div><h1>Portfolio</h1><p class="sub">${brands.length} brands, each on its own Shopify store. Last 30 days, Sep 12 to Oct 11.</p></div><button class="btn primary" data-act="newreq">+ New supplier request</button></div>
   <div class="grid kpis">
     <div class="card kpi"><h3>Revenue</h3><div class="v">${money(tot)}</div><div class="d">${dpct(tot/prev-1)} vs previous 30 days</div></div>
+    <div class="card kpi"><h3>Gross margin</h3><div class="v">${pct(gpT/crT,1)}</div><div class="d">COGS ${money(cogsT)}${missT?` · <span class="down">! ${missT} SKUs missing cost</span>`:''}</div></div>
     <div class="card kpi"><h3>Orders</h3><div class="v">${orders.toLocaleString()}</div><div class="d">Return rate ${pct(rr)}</div></div>
     <div class="card kpi"><button data-act="nav" data-p="requests"><h3>Open supplier requests</h3><div class="v">${open}</div><div class="d ${od?'down':''}">${od?'! '+od+' overdue':'None overdue'}</div></button></div>
     <div class="card kpi"><button data-act="nav" data-p="inventory"><h3>Out-of-stock SKUs</h3><div class="v">${skuRisk}</div><div class="d">across ${brands.filter(b=>b.stockout).length} brands</div></button></div>
@@ -301,17 +317,18 @@ function renderPortfolio(){
 /* ---------- brand drill-down ---------- */
 function renderBrand(){
   const b=brandById(S.brandId), sup=supName(b.supplier);
-  const tabs=[['overview','Overview'],['inventory','Inventory'],['orders','Orders & returns'],['requests','Supplier requests'],['marketing','Marketing'],['ps','Partner success']];
+  const tabs=[['overview','Overview'],['inventory','Inventory'],['costs','Costs & COGS'],['orders','Orders & returns'],['requests','Supplier requests'],['marketing','Marketing'],['ps','Partner success']];
   return `<button class="back" data-act="nav" data-p="portfolio">← All brands</button>
   <div class="head"><div><h1>${esc(b.name)}</h1><p class="sub">${esc(b.slug)}.myshopify.com · Tier ${b.tier} · ${b.mode==='dropship'?'Dropship':'Ships to our warehouse'} via ${esc(sup)}</p></div><div class="row">${hpill(b.health)}<button class="btn primary" data-act="newreq" data-id="${b.id}">+ New supplier request</button></div></div>
   <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}${t[0]==='requests'?` <span class="tag">${requests.filter(r=>r.brandId===b.id).length}</span>`:''}</button>`).join('')}</div>
-  ${({overview:tabOverview,inventory:tabInventory,orders:tabOrders,requests:tabRequests,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
+  ${({overview:tabOverview,inventory:tabInventory,costs:tabCosts,orders:tabOrders,requests:tabRequests,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
 }
 function tabOverview(b){
   const rq=requests.filter(r=>r.brandId===b.id&&openReqs(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
   return `<div class="grid kpis"><div class="card kpi"><h3>Revenue (30d)</h3><div class="v">${money(b.revenue)}</div><div class="d">${dpct(b.delta)} vs previous</div></div>
   <div class="card kpi"><h3>Orders</h3><div class="v">${b.orders.toLocaleString()}</div><div class="d">AOV ${money0(b.aov)}</div></div>
   <div class="card kpi"><h3>Return rate</h3><div class="v">${pct(b.returnRate)}</div><div class="d">${b.returnRate>.075?'Above 7.5% target':'Within target'}</div></div>
+  <div class="card kpi"><h3>Gross margin</h3><div class="v">${pct(b.gm,0)}</div><div class="d">COGS ${money(b.cogs)}${b.missCost?` · <span class="down">! ${b.missCost} missing cost</span>`:''}</div></div>
   <div class="card kpi"><h3>Ad ROAS</h3><div class="v">${roas.toFixed(1)}x</div><div class="d">Meta + Google</div></div></div>
   <div class="grid two" style="margin-bottom:12px"><div class="card"><h2>Revenue per day</h2><p class="small" style="margin:2px 0 10px">Hover a bar for the day.</p>${barChart(b.series,money,dayLabel)}</div>
   <div class="card"><h2>Brand profile</h2><dl style="margin-top:10px"><dt>Shopify store</dt><dd class="mono">${esc(b.slug)}.myshopify.com</dd><dt>Vendor value</dt><dd class="mono">${esc(b.name)}</dd><dt>Supplier</dt><dd>${esc(supName(b.supplier))}</dd><dt>Fulfillment</dt><dd>${b.mode==='dropship'?'Dropship: supplier ships to customer':'Supplier ships to our warehouse'}</dd><dt>Partner success</dt><dd>${esc(b.owner)}</dd><dt>Currency</dt><dd>${b.currency}</dd><dt>Contract renews</dt><dd>${b.renewal.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</dd><dt>Last sync</dt><dd>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:b.syncMin+' min ago'}</dd></dl></div></div>
@@ -320,10 +337,26 @@ function tabOverview(b){
   <div class="card"><h2>Partner success</h2><p class="small" style="margin:6px 0">Last check-in ${b.lastCheckin} days ago by ${esc(b.owner)}</p><p style="margin:0"><b>Next step:</b> ${esc(b.nextStep)}</p></div></div>`;
 }
 function invTable(skus,showBrand){
-  return `<div class="tablewrap"><table><thead><tr>${showBrand?'<th>Brand</th>':''}<th>Product</th><th>SKU</th><th>Held at</th><th class="num">On hand</th><th class="num">Incoming</th><th class="num">Sells/day</th><th>Days of cover</th><th>Status</th></tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${s.vel}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
+  return `<div class="tablewrap"><table><thead><tr>${showBrand?'<th>Brand</th>':''}<th>Product</th><th>SKU</th><th>Held at</th><th class="num">On hand</th><th class="num">Incoming</th><th class="num">Sells/day</th><th class="num">Value at cost</th><th>Days of cover</th><th>Status</th></tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${fmtVel(s.vel)}</td><td class="num">${landed(s)==null?'<span class="small">No cost</span>':money0(s.onHand*landed(s))}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
 }
 function tabInventory(b){
   return `<p class="small" style="margin:0 0 12px">${b.mode==='dropship'?`Stock is held by ${esc(supName(b.supplier))}. They update counts in the portal or by CSV, and the hub syncs them to Shopify.`:'Stock is in our warehouse. Counts come straight from Shopify.'}</p>${invTable(b.skus.map(s=>Object.assign({b},s)),false)}`;
+}
+function tabCosts(b){
+  const sum=f=>b.skus.reduce((a,s)=>a+(landed(s)==null?0:s.u*s[f]),0), prod=sum('cost'), fr=sum('freight'), pk=sum('pack'), tot=prod+fr+pk||1;
+  const units=b.skus.reduce((a,s)=>a+s.u,0);
+  const seg=(v,c,l)=>`<div style="flex:${v};background:var(${c});height:14px;border-radius:3px;min-width:2px" data-tip="${l} · ${money(v)}"></div>`;
+  const inp=(s,i,f)=>`<input type="text" inputmode="decimal" class="costin" aria-label="${esc(s.name)} ${f}" data-cost="${f}" data-id="${b.id}" data-i="${i}" value="${s[f]==null?'':s[f].toFixed(2)}" placeholder="0.00" style="width:76px;text-align:right">`;
+  return `<div class="grid kpis"><div class="card kpi"><h3>Revenue (costed SKUs)</h3><div class="v">${money(b.costedRev)}</div><div class="d">${units.toLocaleString()} units sold, 30d</div></div>
+  <div class="card kpi"><h3>COGS</h3><div class="v">${money(b.cogs)}</div><div class="d">${pct(b.cogs/(b.costedRev||1),0)} of revenue</div></div>
+  <div class="card kpi"><h3>Gross profit</h3><div class="v">${money(b.gp)}</div><div class="d">After COGS, before shipping and ads</div></div>
+  <div class="card kpi"><h3>Gross margin</h3><div class="v">${pct(b.gm,1)}</div><div class="d ${b.missCost?'down':''}">${b.missCost?`! ${b.missCost} SKU${b.missCost>1?'s':''} missing cost`:'All SKUs costed'}</div></div></div>
+  <div class="card" style="margin-bottom:12px"><h2>What makes up COGS</h2><div style="display:flex;gap:2px;margin:12px 0 8px">${seg(prod,'--s1','Product cost')}${seg(fr,'--s2','Freight & duties')}${seg(pk,'--s3','Packaging')}</div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>Product cost ${money(prod)} (${pct(prod/tot,0)})</span><span><i style="background:var(--s2)"></i>Freight & duties ${money(fr)} (${pct(fr/tot,0)})</span><span><i style="background:var(--s3)"></i>Packaging ${money(pk)} (${pct(pk/tot,0)})</span></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Product</th><th>SKU</th><th class="num">Units sold</th><th class="num">Price</th><th class="num">Unit cost</th><th class="num">Freight & duties</th><th class="num">Packaging</th><th class="num">Landed cost</th><th class="num">Margin</th><th class="num">COGS (30d)</th></tr></thead><tbody>
+  ${b.skus.map((s,i)=>{const l=landed(s);return `<tr><td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td class="num">${s.u.toLocaleString()}</td><td class="num">${usd2(s.price)}</td><td class="num">${inp(s,i,'cost')}${l==null?'<div class="small down">! Missing cost</div>':''}</td><td class="num">${inp(s,i,'freight')}</td><td class="num">${inp(s,i,'pack')}</td><td class="num">${l==null?'–':usd2(l)}</td><td class="num">${l==null?'–':pct((s.price-l)/s.price,0)}</td><td class="num">${l==null?'–':money0(s.u*l)}</td></tr>`}).join('')}
+  <tr><td class="name">Total</td><td></td><td class="num"><b>${units.toLocaleString()}</b></td><td></td><td></td><td></td><td></td><td></td><td class="num"><b>${pct(b.gm,0)}</b></td><td class="num"><b>${money0(b.cogs)}</b></td></tr></tbody></table></div>
+  <p class="small" style="margin-top:10px">COGS = (unit cost + freight & duties + packaging) × units sold. Shipping to customers, payment fees and ad spend are not included. Unit cost comes from Shopify's "cost per item" field. Freight, duties and packaging are entered here. Edit any value and the totals update.</p>`;
 }
 function tabOrders(b){
   const st={Fulfilled:'info',Delivered:'good','In transit':'info','Awaiting supplier':'idle',Returned:'warn',Cancelled:'crit'}, ic={good:'✓',info:'→',idle:'○',warn:'↩',crit:'✕'};
@@ -338,7 +371,7 @@ function tabMarketing(b){
   const m=b.meta,g=b.google,e=b.email, spend=m.spend+g.spend, rev=m.rev+g.rev, mer=(m.rev+g.rev+e.rev)/spend;
   const row=(n,c,sp,rv,ow,extra)=>`<tr><td class="name">${n}</td><td class="num">${sp?money(sp):'–'}</td><td class="num">${money(rv)}</td><td class="num">${sp?(rv/sp).toFixed(1)+'x':'–'}</td><td>${esc(ow)}</td><td class="small">${extra}</td></tr>`;
   const mx=Math.max(m.rev,g.rev,e.rev);
-  return `<div class="grid kpis"><div class="card kpi"><h3>Ad spend (30d)</h3><div class="v">${money(spend)}</div><div class="d">Meta + Google</div></div><div class="card kpi"><h3>Ad-attributed revenue</h3><div class="v">${money(rev)}</div><div class="d">ROAS ${(rev/spend).toFixed(1)}x</div></div><div class="card kpi"><h3>Email revenue</h3><div class="v">${money(e.rev)}</div><div class="d">${e.sends} sends this month</div></div><div class="card kpi"><h3>Blended MER</h3><div class="v">${mer.toFixed(1)}x</div><div class="d">All channel revenue ÷ ad spend</div></div></div>
+  return `<div class="grid kpis"><div class="card kpi"><h3>Ad spend (30d)</h3><div class="v">${money(spend)}</div><div class="d">Meta + Google</div></div><div class="card kpi"><h3>Ad-attributed revenue</h3><div class="v">${money(rev)}</div><div class="d">ROAS ${(rev/spend).toFixed(1)}x</div></div><div class="card kpi"><h3>Email revenue</h3><div class="v">${money(e.rev)}</div><div class="d">${e.sends} sends this month</div></div><div class="card kpi"><h3>Blended MER</h3><div class="v">${mer.toFixed(1)}x</div><div class="d">All channel revenue ÷ ad spend</div></div><div class="card kpi"><h3>Gross profit after ads</h3><div class="v ${b.gp-spend<0?'down':''}">${moneyS(b.gp-spend)}</div><div class="d">Gross profit ${money(b.gp)} − ad spend</div></div></div>
   <div class="tablewrap" style="margin-bottom:12px"><table><thead><tr><th>Channel</th><th class="num">Spend</th><th class="num">Revenue</th><th class="num">ROAS</th><th>Team owner</th><th>Notes</th></tr></thead><tbody>${row('Meta',0,m.spend,m.rev,m.owner,'Prospecting + retargeting')}${row('Google',0,g.spend,g.rev,g.owner,'Shopping + brand search')}${row('Email',0,0,e.rev,e.owner,'List '+e.list.toLocaleString()+' subscribers')}</tbody></table></div>
   <div class="card"><h2>Revenue by channel</h2><div class="list" style="margin-top:8px">${[['Meta',m.rev],['Google',g.rev],['Email',e.rev]].map(x=>`<div style="flex-wrap:nowrap"><span style="width:70px">${x[0]}</span><div class="bar" style="flex:1"><span style="width:${x[1]/mx*100}%"></span></div><span class="small" style="width:60px;text-align:right">${money(x[1])}</span></div>`).join('')}</div>
   ${b.stockout?`<p class="small" style="margin:12px 0 0"><span class="pill warn"><b>!</b>${b.stockout} SKU${b.stockout>1?'s':''} out of stock</span> Marketing teams can pause ads on these products.</p>`:''}</div>
@@ -367,10 +400,11 @@ function renderRequests(){
 function renderInventory(){
   let skus=[];brands.forEach(b=>b.skus.forEach(s=>skus.push(Object.assign({b},s))));
   const total=skus.length, out=skus.filter(s=>s.onHand===0).length, low=skus.filter(s=>stockState(s)[0]==='warn').length;
+  const stockVal=skus.reduce((a,s)=>a+(landed(s)==null?0:s.onHand*landed(s)),0);
   skus=skus.filter(s=>(!S.invQ||(s.name+s.sku+s.b.name).toLowerCase().includes(S.invQ.toLowerCase()))&&(S.invRisk!=='risk'||stockState(s)[0]!=='good')&&(!S.invBrand||s.b.mode===S.invBrand));
   skus.sort((a,b)=>stockCover(a)-stockCover(b));
   return `<div class="head"><div><h1>Inventory</h1><p class="sub">Every SKU across ${brands.length} stores, lowest days of cover first.</p></div></div>
-  <div class="grid kpis"><div class="card kpi"><h3>SKUs tracked</h3><div class="v">${total}</div></div><div class="card kpi"><h3>Out of stock</h3><div class="v down">${out}</div></div><div class="card kpi"><h3>Running low</h3><div class="v">${low}</div><div class="d">under 10 days of cover</div></div></div>
+  <div class="grid kpis"><div class="card kpi"><h3>SKUs tracked</h3><div class="v">${total}</div></div><div class="card kpi"><h3>Out of stock</h3><div class="v down">${out}</div></div><div class="card kpi"><h3>Running low</h3><div class="v">${low}</div><div class="d">under 10 days of cover</div></div><div class="card kpi"><h3>Stock value at cost</h3><div class="v">${money(stockVal)}</div><div class="d">On hand × landed unit cost</div></div></div>
   <div class="filters"><input type="search" id="invq" placeholder="Search brand, product or SKU" aria-label="Search inventory" value="${esc(S.invQ)}"><select id="invrisk" aria-label="Show"><option value="risk" ${S.invRisk==='risk'?'selected':''}>Out of stock and low</option><option value="all" ${S.invRisk==='all'?'selected':''}>All SKUs</option></select><select id="invmode" aria-label="Held at"><option value="">All locations</option><option value="dropship" ${S.invBrand==='dropship'?'selected':''}>Held by supplier</option><option value="warehouse" ${S.invBrand==='warehouse'?'selected':''}>Our warehouse</option></select></div>
   <div id="invtbl">${invTable(skus.slice(0,60),true)}</div>${skus.length>60?`<p class="small">Showing 60 of ${skus.length}. Narrow with search.</p>`:''}`;
 }
@@ -488,6 +522,11 @@ document.addEventListener('click',ev=>{
 document.addEventListener('change',ev=>{
   const t=ev.target;
   if(t.dataset.act==='task'){ACTIONS.task(t);return}
+  if(t.dataset.cost){
+    const b=brandById(+t.dataset.id), s=b.skus[+t.dataset.i], f=t.dataset.cost, raw=t.value.replace(/[$,\s]/g,''), v=parseFloat(raw);
+    if(f==='cost')s.cost=raw===''||isNaN(v)||v<0?null:v; else s[f]=isNaN(v)||v<0?0:v;
+    if(f!=='cost'&&s.cost==null){toast('Add a unit cost first')}
+    recalc(b);render();toast(s.cost==null?'Unit cost cleared':'Cost updated. COGS recalculated.');return}
   if(t.id==='supsel'){S.supplierId=+t.value;render()}
   else if(t.id==='fmode'){S.mode=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
   else if(t.id==='fsup'){S.supplier=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
