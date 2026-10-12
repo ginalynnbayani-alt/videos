@@ -336,7 +336,7 @@ const openReqs0=()=>requests.filter(openReqs).length;
 function filteredBrands(){
   let l=brands.filter(b=>(!S.q||b.name.toLowerCase().includes(S.q.toLowerCase()))&&(!S.mode||b.mode===S.mode)&&(S.supplier===''||b.supplier==S.supplier)&&(!S.health||b.health===S.health));
   const hv={red:0,yellow:1,green:2}, k=S.sort;
-  const val=b=>k==='name'?b.name:k==='health'?hv[b.health]:k==='stock'?b.stockout*10+b.lowCover:k==='req'?requests.filter(r=>r.brandId===b.id&&openReqs(r)).length:k==='returns'?b.returnRate:k==='gm'?b.gm:k==='roas'?(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend):b.revenue;
+  const val=b=>k==='name'?b.name:k==='health'?hv[b.health]:k==='stock'?b.stockout*10+b.lowCover:k==='req'?requests.filter(r=>r.brandId===b.id&&openReqs(r)).length:k==='returns'?b.returnRate:k==='gm'?b.gm:k==='mode'?b.mode:k==='supplier'?supName(b.supplier):k==='trend'?b.delta:k==='sync'?b.syncMin:k==='roas'?(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend):b.revenue;
   l.sort((a,b)=>{const x=val(a),y=val(b);return (x>y?1:x<y?-1:0)*S.dir});
   return l;
 }
@@ -344,7 +344,7 @@ function brandTable(){
   const l=filteredBrands(), shown=l.slice(0,S.show);
   const th=(k,label,cls='')=>`<th class="${cls}" aria-sort="${S.sort===k?(S.dir>0?'ascending':'descending'):'none'}"><button data-act="sort" data-k="${k}">${label}${S.sort===k?(S.dir>0?' ↑':' ↓'):''}</button></th>`;
   return `<div class="small" style="margin-bottom:8px">${l.length} of ${brands.length} brands</div>
-  <div class="tablewrap"><table><thead><tr>${th('name','Brand')}<th>Fulfillment</th><th>Supplier</th>${th('revenue','Revenue (30d)','num')}<th>Trend</th>${th('gm','Gross margin','num')}${th('returns','Returns','num')}${th('roas','Ad ROAS','num')}${th('stock','Stock risk')}${th('req','Open requests','num')}${th('health','Health')}<th>Sync</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr>${th('name','Brand')}${th('mode','Fulfillment')}${th('supplier','Supplier')}${th('revenue','Revenue (30d)','num')}${th('trend','Trend')}${th('gm','Gross margin','num')}${th('returns','Returns','num')}${th('roas','Ad ROAS','num')}${th('stock','Stock risk')}${th('req','Open requests','num')}${th('health','Health')}${th('sync','Sync')}</tr></thead><tbody>
   ${shown.map(b=>{const o=requests.filter(r=>r.brandId===b.id&&openReqs(r)).length, od=requests.some(r=>r.brandId===b.id&&isOverdue(r)), roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend);
     return `<tr data-act="brand" data-id="${b.id}" tabindex="0"><td><div class="name">${esc(b.name)}</div><div class="small">Tier ${b.tier} · ${esc(b.owner)}</div></td><td><span class="tag">${b.mode==='dropship'?'Dropship':'Warehouse'}</span></td><td>${esc(supName(b.supplier))}</td><td class="num">${money(b.revenue)}<div class="small">${dpct(b.delta)}</div></td><td>${spark(b.series)}</td><td class="num">${pct(b.gm,0)}${b.missCost?` <span class="down" data-tip="${b.missCost} SKU${b.missCost>1?'s':''} missing cost. Margin is overstated.">!</span>`:''}</td><td class="num">${pct(b.returnRate)}</td><td class="num">${roas.toFixed(1)}x</td><td>${b.stockout?`<span class="pill crit"><b>✕</b>${b.stockout} out</span>`:b.lowCover?`<span class="pill warn"><b>!</b>${b.lowCover} low</span>`:`<span class="small">None</span>`}</td><td class="num">${o?`<span class="${od?'down':''}">${od?'! ':''}${o}</span>`:'<span class="small">0</span>'}</td><td>${hpill(b.health)}</td><td>${b.syncMin>120?`<span class="pill warn"><b>!</b>${Math.round(b.syncMin/60)} h ago</span>`:`<span class="small">${b.syncMin} min ago</span>`}</td></tr>`}).join('')||''}
   </tbody></table>${l.length===0?'<div class="empty">No brands match those filters.</div>':''}</div>
@@ -404,8 +404,11 @@ function tabOverview(b){
   <div class="card"><h2>Stock alerts</h2>${b.skus.filter(s=>stockState(s)[0]!=='good').length?`<div class="list">${b.skus.filter(s=>stockState(s)[0]!=='good').map(s=>{const x=stockState(s);return `<div><span>${esc(s.name)}<div class="small mono">${s.sku}</div></span><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></div>`}).join('')}</div>`:'<p class="small">All SKUs healthy.</p>'}</div>
   <div class="card"><h2>Partner success</h2><p class="small" style="margin:6px 0">${esc(b.owner)} · ${esc(b.cadence)}</p><p style="margin:0 0 6px"><b>Next update due</b></p>${duePill(dueOf(b))}<p class="small" style="margin:8px 0 0">${issueOpen(b)?issueOpen(b)+' open issue'+(issueOpen(b)>1?'s':''):'No open issues'}</p></div></div>`;
 }
-function invTable(skus,showBrand){
-  return `<div class="tablewrap"><table><thead><tr>${showBrand?'<th>Brand</th>':''}<th>Product</th><th>SKU</th><th>Held at</th><th class="num">On hand</th><th class="num">Incoming</th><th class="num">Sells/day</th><th class="num">Value at cost</th><th>Days of cover</th><th>Status</th></tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${fmtVel(s.vel)}</td><td class="num">${landed(s)==null?'<span class="small">No cost</span>':money0(s.onHand*landed(s))}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
+function invTable(skus,showBrand,limit){
+  const T=showBrand?'inv':'binv';
+  skus=sortBy(skus,{brand:s=>s.b?s.b.name:'',product:s=>s.name,sku:s=>s.sku,held:s=>s.loc,onhand:s=>s.onHand,incoming:s=>s.incoming||0,vel:s=>s.vel,value:s=>landed(s)==null?null:s.onHand*landed(s),cover:s=>stockCover(s),status:s=>({crit:0,warn:1,good:2})[stockState(s)[0]]},T,{k:'cover',dir:1});
+  if(limit)skus=skus.slice(0,limit);
+  return `<div class="tablewrap"><table><thead><tr>${showBrand?sth(T,'brand','Brand'):''}${sth(T,'product','Product')}${sth(T,'sku','SKU')}${sth(T,'held','Held at')}${sth(T,'onhand','On hand','num',-1)}${sth(T,'incoming','Incoming','num',-1)}${sth(T,'vel','Sells/day','num',-1)}${sth(T,'value','Value at cost','num',-1)}${sth(T,'cover','Days of cover')}${sth(T,'status','Status')}</tr></thead><tbody>${skus.map(s=>{const x=stockState(s), c=stockCover(s);return `<tr>${showBrand?`<td><button class="back" style="margin:0;color:var(--accent);font-weight:600" data-act="brand" data-id="${s.b.id}">${esc(s.b.name)}</button></td>`:''}<td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td>${esc(s.loc)}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${fmtVel(s.vel)}</td><td class="num">${landed(s)==null?'<span class="small">No cost</span>':money0(s.onHand*landed(s))}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td></tr>`}).join('')}</tbody></table>${skus.length?'':'<div class="empty">No SKUs match.</div>'}</div>`;
 }
 function tabInventory(b){
   return `<p class="small" style="margin:0 0 12px">${b.mode==='dropship'?`Stock is held by ${esc(supName(b.supplier))}. They update counts in the portal or by CSV, and the hub syncs them to Shopify.`:'Stock is in our warehouse. Counts come straight from Shopify.'}</p>${invTable(b.skus.map(s=>Object.assign({b},s)),false)}`;
@@ -428,11 +431,11 @@ function tabCosts(b){
 }
 function tabOrders(b){
   const st={Fulfilled:'info',Delivered:'good','In transit':'info','Awaiting supplier':'idle',Returned:'warn',Cancelled:'crit'}, ic={good:'✓',info:'→',idle:'○',warn:'↩',crit:'✕'};
-  return `<div class="tablewrap"><table><thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th>Status</th><th>Placed</th><th></th></tr></thead><tbody>${b.orderRows.map(o=>`<tr><td class="mono">#${o.no}</td><td>${esc(o.cust)}</td><td class="num">${money0(o.total)}</td><td><span class="pill ${st[o.status]}"><b>${ic[st[o.status]]}</b>${o.status}</span></td><td class="small">${o.days===0?'Today':o.days+' days ago'}</td><td style="text-align:right"><button class="btn sm" data-act="newreq" data-id="${b.id}" data-no="${o.no}">Request return or cancel</button></td></tr>`).join('')}</tbody></table></div>
+  return `<div class="tablewrap"><table><thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th>Status</th><th>Placed</th><th></th></tr></thead><tbody>${b.orderRows.map(o=>`<tr><td class="mono">#${o.no}</td><td>${esc(o.cust)}</td><td class="num">${money0(o.total)}</td><td><span class="pill ${st[o.status]}"><b>${ic[st[o.status]]}</b>${o.status}</span></td><td class="small" data-v="${o.days}">${o.days===0?'Today':o.days+' days ago'}</td><td style="text-align:right"><button class="btn sm" data-act="newreq" data-id="${b.id}" data-no="${o.no}">Request return or cancel</button></td></tr>`).join('')}</tbody></table></div>
   <p class="small" style="margin-top:10px">Orders sync from Shopify. Requests made here go to ${esc(supName(b.supplier))}.</p>`;
 }
 function reqTable(list,showBrand=true){
-  return `<div class="tablewrap"><table><thead><tr><th>Request</th>${showBrand?'<th>Brand</th>':''}<th>Order</th><th>Supplier</th><th>Created</th><th>Status</th><th>Tracking</th></tr></thead><tbody>${list.map(r=>{const b=brandById(r.brandId);return `<tr data-act="openreq" data-id="${r.id}" tabindex="0"><td><div class="name">${r.id}</div><div class="small">${typeLabel(r.type,b)}</div></td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td class="mono">#${r.orderNo}</td><td>${esc(supName(r.supplier))}</td><td class="small">${ago(r.hoursAgo)}</td><td>${spill(r)}</td><td class="mono">${r.tracking||'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No requests yet.</div>'}</div>`;
+  return `<div class="tablewrap"><table><thead><tr><th>Request</th>${showBrand?'<th>Brand</th>':''}<th>Order</th><th>Supplier</th><th>Created</th><th>Status</th><th>Tracking</th></tr></thead><tbody>${list.map(r=>{const b=brandById(r.brandId);return `<tr data-act="openreq" data-id="${r.id}" tabindex="0"><td><div class="name">${r.id}</div><div class="small">${typeLabel(r.type,b)}</div></td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td class="mono">#${r.orderNo}</td><td>${esc(supName(r.supplier))}</td><td class="small" data-v="${r.hoursAgo}">${ago(r.hoursAgo)}</td><td>${spill(r)}</td><td class="mono">${r.tracking||'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No requests yet.</div>'}</div>`;
 }
 const tabRequests=b=>reqTable(requests.filter(r=>r.brandId===b.id).sort((a,c)=>a.hoursAgo-c.hoursAgo),false);
 function tabMarketing(b){
@@ -571,11 +574,11 @@ function renderPsHome(){
 }
 function renderTracker(){
   let rows=[];brands.forEach(b=>{if(S.tAss&&b.owner!==S.tAss)return;b.contacts.forEach((c,ci)=>rows.push({b,c,ci,d:nextScheduled(c.last,b.cadence)}))});
-  rows.sort((x,y)=>(x.d||0)-(y.d||0));
+  rows=sortBy(rows,{brand:r=>r.b.name,partner:r=>r.c.name,cadence:r=>r.b.cadence,last:r=>+r.c.last,actions:r=>r.c.actions||null,due:r=>r.d?+r.d:null},'tracker',{k:'due',dir:1});
   const shown=rows.slice(0,S.tShow);
   return `<div class="head"><div><h1>Update tracker</h1><p class="sub">One row per partner. Change a last-contacted date or open action and the next due date updates.</p></div>
    <div class="field" style="margin:0"><label for="tass">Assignee</label><select id="tass"><option value="">Everyone</option>${PEOPLE.ps.map(a=>`<option ${S.tAss===a?'selected':''}>${esc(a)}</option>`).join('')}</select></div></div>
-  <div class="tablewrap"><table style="min-width:980px"><thead><tr><th>Brand</th><th>Partner</th><th>Cadence</th><th>Last contacted</th><th>Open actions</th><th>Next due</th><th></th></tr></thead><tbody>
+  <div class="tablewrap"><table style="min-width:980px"><thead><tr>${sth('tracker','brand','Brand')}${sth('tracker','partner','Partner')}${sth('tracker','cadence','Cadence')}${sth('tracker','last','Last contacted')}${sth('tracker','actions','Open actions')}${sth('tracker','due','Next due')}<th></th></tr></thead><tbody>
   ${shown.map(r=>`<tr><td><button class="link" data-act="brand" data-id="${r.b.id}">${esc(r.b.name)}</button><div class="small">${esc(r.b.owner)}</div></td><td>${esc(r.c.name)}<div class="small">${esc(r.c.email)}</div></td><td class="small">${esc(r.b.cadence)}</td><td><input type="date" data-ps="clast" data-id="${r.b.id}" data-ci="${r.ci}" value="${isoDate(r.c.last)}" aria-label="Last contacted, ${esc(r.c.name)}"></td><td><input type="text" data-ps="cactions" data-id="${r.b.id}" data-ci="${r.ci}" value="${esc(r.c.actions)}" placeholder="None" aria-label="Open actions, ${esc(r.c.name)}" style="width:170px"></td><td>${duePill(r.d)}</td><td><button class="btn sm" data-act="contacted" data-id="${r.b.id}" data-ci="${r.ci}">Contacted today</button></td></tr>`).join('')}</tbody></table>${rows.length?'':'<div class="empty">No partners for this assignee.</div>'}</div>
   ${rows.length>S.tShow?`<div style="text-align:center;margin-top:12px"><button class="btn" data-act="trackmore">Show more (${rows.length-S.tShow} left)</button></div>`:''}`;
 }
@@ -642,7 +645,7 @@ function poTable(list,showBrand=true){
 }
 function payTable(list,cols){
   const c=cols||{};
-  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Payment</th>${c.sup===false?'':'<th>Supplier</th>'}<th>PO</th>${c.brand===false?'':'<th>Brand</th>'}<th>Type</th><th class="num">Amount</th><th>Due</th><th>Status</th><th>Invoice</th><th>Paid</th><th></th></tr></thead><tbody>${payRows(list).map(p=>{const b=brandById(p.brandId);return `<tr><td class="mono">${p.id}</td>${c.sup===false?'':`<td>${esc(supName(p.supplier))}</td>`}<td><button class="link mono" data-act="openpo" data-id="${p.poId}">${p.poId}</button></td>${c.brand===false?'':`<td>${esc(b.name)}</td>`}<td>${p.kind}</td><td class="num">${money0(p.amount)}</td><td>${fdate(p.due)}<div class="small ${payStatus(p)==='overdue'?'down':''}">${p.paidOn?'':rel(p.due)}</div></td><td>${paySpill(p)}</td><td>${invCell(p)}</td><td class="small">${p.paidOn?`${fdate(p.paidOn)} · ${esc(p.method)}<div class="mono">${esc(p.ref)}</div>`:'–'}</td><td style="text-align:right">${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No payments match.</div>'}</div>`;
+  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Payment</th>${c.sup===false?'':'<th>Supplier</th>'}<th>PO</th>${c.brand===false?'':'<th>Brand</th>'}<th>Type</th><th class="num">Amount</th><th>Due</th><th>Status</th><th>Invoice</th><th>Paid</th><th></th></tr></thead><tbody>${payRows(list).map(p=>{const b=brandById(p.brandId);return `<tr><td class="mono">${p.id}</td>${c.sup===false?'':`<td>${esc(supName(p.supplier))}</td>`}<td><button class="link mono" data-act="openpo" data-id="${p.poId}">${p.poId}</button></td>${c.brand===false?'':`<td>${esc(b.name)}</td>`}<td>${p.kind}</td><td class="num">${money0(p.amount)}</td><td>${fdate(p.due)}<div class="small ${payStatus(p)==='overdue'?'down':''}">${p.paidOn?'':rel(p.due)}</div></td><td>${paySpill(p)}</td><td>${invCell(p)}</td><td class="small" data-v="${p.paidOn?isoDate(p.paidOn):''}">${p.paidOn?`${fdate(p.paidOn)} · ${esc(p.method)}<div class="mono">${esc(p.ref)}</div>`:'–'}</td><td style="text-align:right">${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No payments match.</div>'}</div>`;
 }
 const tabPOs=b=>{const pl=purchaseOrders.filter(p=>p.brandId===b.id).sort((a,c)=>c.createdOn-a.createdOn), py=payments.filter(p=>p.brandId===b.id);
   return `${summaryTiles(poStats(pl),'all time')}<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Purchase orders</h2><button class="btn primary" data-act="newpo" data-id="${b.id}">+ New purchase order</button></div>${poTable(pl,false)}<h2 style="margin:22px 0 10px">Supplier payments</h2>${payTable(py,{brand:false})}`};
@@ -677,8 +680,9 @@ function renderPOs(){
   const late=scope.filter(poLate);
   const chip=k=>`<button class="chip" data-act="posf" data-k="${k}" aria-pressed="${S.poSt===k}">${k||'All'}${k?` · ${k==='Late'?late.length:scope.filter(p=>p.status===k).length}`:''}</button>`;
   const brandIds=new Set(all.map(p=>p.brandId));
-  const byBrand=[...new Set(scope.map(p=>p.brandId))].map(id=>({b:brandById(id),st:poStats(scope.filter(p=>p.brandId===id))})).filter(x=>x.st.n).sort((a,c)=>c.st.pending-a.st.pending);
-  const shownB=S.poAllBrands?byBrand:byBrand.slice(0,8);
+  const byBrand=[...new Set(scope.map(p=>p.brandId))].map(id=>({b:brandById(id),st:poStats(scope.filter(p=>p.brandId===id))})).filter(x=>x.st.n);
+  const byBrandS=sortBy(byBrand,{brand:x=>x.b.name,pos:x=>x.st.n,total:x=>x.st.total,paid:x=>x.st.paid,pending:x=>x.st.pending,pct:x=>x.st.total?x.st.paid/x.st.total:0},'bb',{k:'pending',dir:-1});
+  const shownB=S.poAllBrands?byBrandS:byBrandS.slice(0,8);
   const brandOpts=[...brands].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}" ${S.poBrand!==''&&+S.poBrand===b.id?'selected':''}>${esc(b.name)}${brandIds.has(b.id)?'':' (no POs)'}</option>`).join('');
   const opt=(v,l,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`;
   const pays=scope.filter(po=>po.status!=='Draft'&&po.status!=='Cancelled').flatMap(poPays);
@@ -692,7 +696,7 @@ function renderPOs(){
    <button class="btn" data-act="poreset">Reset</button></div>
   <p class="small" style="margin:-4px 0 12px">Showing ${esc(label)} · ${poRangeLabel()} (${S.poBasis==='eta'?'by expected arrival':'by order date'}). Drafts and cancelled POs are not counted in the totals.</p>
   ${summaryTiles(st,label)}
-  ${S.poBrand===''&&byBrand.length?`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h2>By brand</h2><span class="small">Most owed first</span></div><div class="tablewrap" style="border:0;margin-top:8px"><table style="min-width:640px"><thead><tr><th>Brand</th><th class="num">POs</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Pending</th><th>% paid</th></tr></thead><tbody>${shownB.map(x=>`<tr><td><button class="link" data-act="pobrand" data-id="${x.b.id}">${esc(x.b.name)}</button></td><td class="num">${x.st.n}</td><td class="num">${money0(x.st.total)}</td><td class="num">${money0(x.st.paid)}</td><td class="num ${x.st.odN?'down':''}">${money0(x.st.pending)}${x.st.odN?' !':''}</td><td><div class="bar"><span style="width:${x.st.total?x.st.paid/x.st.total*100:0}%"></span></div></td></tr>`).join('')}</tbody></table></div>${byBrand.length>8?`<div style="margin-top:8px"><button class="link" data-act="poallbrands">${S.poAllBrands?'Show top 8':`Show all ${byBrand.length} brands`}</button></div>`:''}</div>`:''}
+  ${S.poBrand===''&&byBrand.length?`<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><h2>By brand</h2><span class="small">Click a column to sort</span></div><div class="tablewrap" style="border:0;margin-top:8px"><table style="min-width:640px"><thead><tr>${sth('bb','brand','Brand')}${sth('bb','pos','POs','num',-1)}${sth('bb','total','Total','num',-1)}${sth('bb','paid','Paid','num',-1)}${sth('bb','pending','Pending','num',-1)}${sth('bb','pct','% paid','',-1)}</tr></thead><tbody>${shownB.map(x=>`<tr><td><button class="link" data-act="pobrand" data-id="${x.b.id}">${esc(x.b.name)}</button></td><td class="num">${x.st.n}</td><td class="num">${money0(x.st.total)}</td><td class="num">${money0(x.st.paid)}</td><td class="num ${x.st.odN?'down':''}">${money0(x.st.pending)}${x.st.odN?' !':''}</td><td><div class="bar"><span style="width:${x.st.total?x.st.paid/x.st.total*100:0}%"></span></div></td></tr>`).join('')}</tbody></table></div>${byBrand.length>8?`<div style="margin-top:8px"><button class="link" data-act="poallbrands">${S.poAllBrands?'Show top 8':`Show all ${byBrand.length} brands`}</button></div>`:''}</div>`:''}
   <div class="chips">${['','Draft','Sent','Confirmed','In production','Shipped','Received','Late'].map(chip).join('')}</div>
   ${poTable(f)}
   ${S.poBrand!==''?`<h2 style="margin:22px 0 10px">Payments for ${esc(label)}</h2>${payTable(pays,{brand:false})}`:''}`;
@@ -835,7 +839,7 @@ function supInvoices(sid){
   return `<div class="grid kpis"><div class="card kpi"><h3>Approved, awaiting payment</h3><div class="v">${money(owed)}</div></div><div class="card kpi"><h3>Paid, last 30 days</h3><div class="v">${money(paid30)}</div></div><div class="card kpi"><h3>Payments without an invoice</h3><div class="v ${miss.length?'down':''}">${miss.length}</div><div class="d">Add one so you get paid on time</div></div></div>
   ${miss.length?`<h2 style="margin:4px 0 10px">Needs an invoice</h2><div class="card" style="margin-bottom:20px"><div class="list">${miss.map(p=>`<div><span><b>${p.kind}</b> ${money0(p.amount)}<div class="small"><span class="mono">${p.poId}</span> · ${esc(brandById(p.brandId).name)} · due ${fdate(p.due)} (${rel(p.due)})</div></span><button class="btn sm primary" data-act="invmodal" data-id="${p.poId}" data-pay="${p.id}">+ Add invoice</button></div>`).join('')}</div></div>`:''}
   <h2 style="margin:4px 0 10px">Your invoices</h2>
-  <div class="tablewrap"><table style="min-width:820px"><thead><tr><th>Invoice</th><th>PO</th><th>Brand</th><th class="num">Amount</th><th>Issued</th><th>Due</th><th>Review</th><th>Payment</th></tr></thead><tbody>${mine.map(i=>{const p=payments.find(x=>x.invoiceId===i.id);return `<tr><td><b>${esc(i.number)}</b><div class="small">${esc(i.file)}</div></td><td class="mono">${i.poId}</td><td>${esc(brandById(i.brandId).name)}</td><td class="num">${money0(i.amount)}</td><td class="small">${fdate(i.issued)}</td><td>${fdate(i.due)}</td><td>${invPill(i)}${i.status==='Disputed'?`<div class="small down">${esc(i.reviewNote)}</div>`:''}</td><td>${p?(p.paidOn?`<span class="pill good"><b>✓</b>Paid ${fdate(p.paidOn)}</span><div class="small mono">${esc(p.method)} ${esc(p.ref)}</div>`:`<span class="small">Scheduled for ${fdate(p.due)}</span>`):'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${mine.length?'':'<div class="empty">No invoices yet.</div>'}</div>`;
+  <div class="tablewrap"><table style="min-width:820px"><thead><tr><th>Invoice</th><th>PO</th><th>Brand</th><th class="num">Amount</th><th>Issued</th><th>Due</th><th>Review</th><th>Payment</th></tr></thead><tbody>${mine.map(i=>{const p=payments.find(x=>x.invoiceId===i.id);return `<tr><td><b>${esc(i.number)}</b><div class="small">${esc(i.file)}</div></td><td class="mono">${i.poId}</td><td>${esc(brandById(i.brandId).name)}</td><td class="num">${money0(i.amount)}</td><td class="small">${fdate(i.issued)}</td><td>${fdate(i.due)}</td><td>${invPill(i)}${i.status==='Disputed'?`<div class="small down">${esc(i.reviewNote)}</div>`:''}</td><td data-v="${p?isoDate(p.paidOn||p.due):''}">${p?(p.paidOn?`<span class="pill good"><b>✓</b>Paid ${fdate(p.paidOn)}</span><div class="small mono">${esc(p.method)} ${esc(p.ref)}</div>`:`<span class="small">Scheduled for ${fdate(p.due)}</span>`):'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${mine.length?'':'<div class="empty">No invoices yet.</div>'}</div>`;
 }
 function invModal(poId,payId){
   const po=purchaseOrders.find(x=>x.id===poId), miss=poPays(po).filter(p=>!p.paidOn&&!p.invoiceId);
@@ -855,6 +859,57 @@ function invModal(poId,payId){
 function textModal(title,sub,label,act,id,btn){
   $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="${title}"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">${title}</h2><button class="btn sm" data-act="closelayer2">Close</button></div><p class="small" style="margin:0 0 14px">${sub}</p><div class="field"><label for="tm-text">${label}</label><textarea id="tm-text" rows="4"></textarea></div><div id="tm-err" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="${act}" data-id="${id}" style="width:100%">${btn}</button></div></div>`;
 }
+
+/* ---------- sorting ---------- */
+const SORT={}, GSORT={}, MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function cmpVals(a,b){if(typeof a==='number'&&typeof b==='number')return a-b;if(typeof a==='number')return -1;if(typeof b==='number')return 1;return String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'})}
+function sortBy(list,acc,tbl,def){
+  const st=SORT[tbl]||def, f=acc[st.k]||acc[def.k], keyed=list.map((x,i)=>({x,i,v:f(x)}));
+  const has=keyed.filter(o=>o.v!=null&&o.v!==''), none=keyed.filter(o=>o.v==null||o.v==='');
+  has.sort((a,b)=>cmpVals(a.v,b.v)*st.dir||a.i-b.i);
+  return has.concat(none).map(o=>o.x);
+}
+const sth=(t,k,label,cls,d)=>{const s=SORT[t]||{},on=s.k===k;return `<th class="${cls||''}" aria-sort="${on?(s.dir>0?'ascending':'descending'):'none'}"><button data-act="ssort" data-t="${t}" data-k="${k}" data-d="${d||1}">${label}${on?(s.dir>0?' ↑':' ↓'):''}</button></th>`};
+function parseVal(s){
+  let m;s=s.trim();
+  if(m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s))return +new Date(+m[1],+m[2]-1,+m[3]);
+  if(m=/^([A-Z][a-z]{2}) (\d{1,2})(?:, (\d{4}))?$/.exec(s)){const mo=MONTHS.indexOf(m[1]);if(mo>=0)return +new Date(+(m[3]||2026),mo,+m[2])}
+  if(m=/^#(\d+)$/.exec(s))return +m[1];
+  if(m=/^([−-]?)\$?([\d,]+(?:\.\d+)?)\s*([kKmM%x])?(?:\s|$)/.exec(s)){let v=parseFloat(m[2].replace(/,/g,''));if(m[3]==='k'||m[3]==='K')v*=1e3;if(m[3]==='m'||m[3]==='M')v*=1e6;return m[1]?-v:v}
+  return null;
+}
+function cellVal(td){
+  if(!td)return null;
+  let raw;
+  if(td.dataset.v!==undefined)raw=td.dataset.v;
+  else{const i=td.querySelector('input,select');raw=i?(i.tagName==='SELECT'?i.options[i.selectedIndex].text:i.value):(td.innerText||td.textContent).trim().split('\n')[0].trim()}
+  if(raw===''||raw==='–'||raw==='-')return null;
+  const n=parseVal(raw);return n!=null?n:(isNaN(+raw)?raw:+raw);
+}
+const pinnedRow=r=>!!r.querySelector('td[colspan]')||(r.cells[0]&&r.cells[0].textContent.trim()==='Total');
+function applyG(t){
+  const st=GSORT[t._key];if(!st)return;
+  const rows=[...t.tBodies[0].rows], pin=rows.filter(pinnedRow), rest=rows.filter(r=>!pinnedRow(r));
+  const keyed=rest.map(r=>({r,i:r._i,v:cellVal(r.cells[st.c])})), has=keyed.filter(o=>o.v!=null), none=keyed.filter(o=>o.v==null);
+  has.sort((a,b)=>cmpVals(a.v,b.v)*st.dir||a.i-b.i);
+  t.tBodies[0].append(...has.concat(none).map(o=>o.r),...pin);
+  [...t.tHead.rows[0].cells].forEach((th,c)=>{const b=th.querySelector('.sortb');if(!b)return;const on=c===st.c;th.setAttribute('aria-sort',on?(st.dir>0?'ascending':'descending'):'none');b.querySelector('.arr').textContent=on?(st.dir>0?' ↑':' ↓'):''});
+}
+function enhanceTables(root,scope){
+  root.querySelectorAll('table').forEach((t,ti)=>{
+    if(!t.tHead||!t.tBodies[0]||t.querySelector('th button'))return;
+    t._key=scope+':'+S.page+':'+S.tab+':'+ti;
+    [...t.tHead.rows[0].cells].forEach((th,c)=>{const l=th.textContent.trim();if(!l)return;th.innerHTML=`<button class="sortb" data-c="${c}">${esc(l)}<span class="arr"></span></button>`;th.setAttribute('aria-sort','none')});
+    [...t.tBodies[0].rows].forEach((r,i)=>r._i=i);
+    applyG(t);
+  });
+}
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest&&ev.target.closest('.sortb');if(!b)return;
+  const t=b.closest('table'),c=+b.dataset.c,st=GSORT[t._key];
+  GSORT[t._key]=st&&st.c===c?{c,dir:-st.dir}:{c,dir:b.closest('th').classList.contains('num')?-1:1};applyG(t);
+});
+new MutationObserver(()=>enhanceTables($('#layer'),'L')).observe($('#layer'),{childList:true});
 
 /* ---------- ops requests & inventory ---------- */
 function renderRequests(){
@@ -877,7 +932,7 @@ function renderInventory(){
   return `<div class="head"><div><h1>Inventory</h1><p class="sub">Every SKU across ${brands.length} stores, lowest days of cover first.</p></div></div>
   <div class="grid kpis"><div class="card kpi"><h3>SKUs tracked</h3><div class="v">${total}</div></div><div class="card kpi"><h3>Out of stock</h3><div class="v down">${out}</div></div><div class="card kpi"><h3>Running low</h3><div class="v">${low}</div><div class="d">under 10 days of cover</div></div><div class="card kpi"><h3>Stock value at cost</h3><div class="v">${money(stockVal)}</div><div class="d">On hand × landed unit cost</div></div></div>
   <div class="filters"><input type="search" id="invq" placeholder="Search brand, product or SKU" aria-label="Search inventory" value="${esc(S.invQ)}"><select id="invrisk" aria-label="Show"><option value="risk" ${S.invRisk==='risk'?'selected':''}>Out of stock and low</option><option value="all" ${S.invRisk==='all'?'selected':''}>All SKUs</option></select><select id="invmode" aria-label="Held at"><option value="">All locations</option><option value="dropship" ${S.invBrand==='dropship'?'selected':''}>Held by supplier</option><option value="warehouse" ${S.invBrand==='warehouse'?'selected':''}>Our warehouse</option></select></div>
-  <div id="invtbl">${invTable(skus.slice(0,60),true)}</div>${skus.length>60?`<p class="small">Showing 60 of ${skus.length}. Narrow with search.</p>`:''}`;
+  <div id="invtbl">${invTable(skus,true,60)}</div>${skus.length>60?`<p class="small">Showing 60 of ${skus.length}. Narrow with search.</p>`:''}`;
 }
 
 /* ---------- supplier portal ---------- */
@@ -947,7 +1002,7 @@ const ACTIONS={
   role:e=>{S.role=e.dataset.r;if(S.role==='ops'&&S.page==='brand')S.page='portfolio';render()},
   brand:e=>{S.brandId=+e.dataset.id;S.page='brand';S.tab='overview';S.sideOpen=false;render();window.scrollTo(0,0)},
   tab:e=>{S.tab=e.dataset.t;render()},
-  sort:e=>{const k=e.dataset.k;S.dir=S.sort===k?-S.dir:(k==='name'||k==='health'?1:-1);S.sort=k;$('#tbl').innerHTML=brandTable()},
+  sort:e=>{const k=e.dataset.k;S.dir=S.sort===k?-S.dir:(k==='name'||k==='health'||k==='mode'||k==='supplier'?1:-1);S.sort=k;$('#tbl').innerHTML=brandTable()},
   more:()=>{S.show+=20;$('#tbl').innerHTML=brandTable()},
   openreq:e=>reqDrawer(e.dataset.id),
   closelayer:(e,ev)=>{if(ev.target===e)$('#layer').innerHTML=''},
@@ -978,6 +1033,7 @@ const ACTIONS={
   },
   savepartner:e=>{const n=$('#np-name').value.trim();if(!n){toast('Enter the partner name');return}const b=brandById(+e.dataset.id);b.contacts.push({name:n,email:$('#np-email').value.trim(),last:new Date(TODAY),actions:''});logAct(b,'Added partner '+n);render();toast('Partner added')},
   rmpartner:e=>{const b=brandById(+e.dataset.id),c=b.contacts.splice(+e.dataset.ci,1)[0];logAct(b,'Removed partner '+c.name);render();toast('Partner removed')},
+  ssort:e=>{const t=e.dataset.t,k=e.dataset.k,c=SORT[t];SORT[t]=c&&c.k===k?{k,dir:-c.dir}:{k,dir:+e.dataset.d||1};render()},
   posf:e=>{S.poSt=e.dataset.k;render()},
   pobrand:e=>{S.poBrand=e.dataset.id;render();window.scrollTo(0,0)},
   poallbrands:()=>{S.poAllBrands=!S.poAllBrands;render()},
@@ -1112,6 +1168,7 @@ function render(){
   const PAGES={pos:renderPOs,payments:renderPayments,brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
   $('#app').innerHTML=S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)();
   $('#layer').innerHTML='';
+  enhanceTables($('#app'),'A');
 }
 render();
 </script>
