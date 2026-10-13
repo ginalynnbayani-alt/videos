@@ -292,7 +292,7 @@ const brandById=id=>brands[id];
 
 /* ---------- requests ---------- */
 let reqSeq=1040; const requests=[];
-function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',carrier:'',label:'',note:'',events:[],addrPending:false,addrConflict:false,addrHistory:[]},o);if(!r.addr)r.addr=sampleAddr(r.type,brandById(r.brandId));const p={order:'ORD',return:'RET',cancellation:'CXL'}[r.type];r.id=p+'-'+(++reqSeq);r.events.unshift({sys:true,t:'Request created by '+r.by,ago:r.hoursAgo});r.events.unshift({sys:true,t:'Notified '+SUPPLIERS[r.supplier].name+' by email and WhatsApp',ago:r.hoursAgo});return r;}
+function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',carrier:'',label:'',note:'',events:[],addrPending:false,addrConflict:false,addrHistory:[]},o);if(!r.addr)r.addr=sampleAddr(r.type,brandById(r.brandId));const p={order:'ORD',return:'RET',cancellation:'CXL',change:'CHG'}[r.type];r.id=p+'-'+(++reqSeq);r.events.unshift({sys:true,t:'Request created by '+r.by,ago:r.hoursAgo});r.events.unshift({sys:true,t:'Notified '+SUPPLIERS[r.supplier].name+' by email and WhatsApp',ago:r.hoursAgo});return r;}
 (function seed(){
   const ex=[['return',2,'ack'],['return',3,'notified'],['cancellation',1,'notified'],['order',5,'notified'],['return',30,'notified'],['cancellation',26,'notified'],['return',7,'done'],['order',9,'ack'],['cancellation',4,'declined'],['return',50,'ack'],['order',3,'done'],['return',12,'notified'],['cancellation',0.5,'notified'],['order',40,'notified']];
   ex.forEach((e,i)=>{
@@ -319,12 +319,12 @@ const money0=n=>'$'+Math.round(n).toLocaleString('en-US');
 const pct=(n,d=1)=>(n*100).toFixed(d)+'%';
 const dpct=n=>`<span class="${n>=0?'up':'down'}">${n>=0?'▲':'▼'} ${Math.abs(n*100).toFixed(0)}%</span>`;
 const ago=h=>h<1?Math.max(1,Math.round(h*60))+' min ago':h<48?Math.round(h)+' h ago':Math.round(h/24)+' days ago';
-const typeLabel=(t,b)=>t==='order'?(b&&b.mode==='warehouse'?'Replenishment order':'Order'):t==='return'?'Return':'Cancellation';
+const typeLabel=(t,b)=>t==='order'?(b&&b.mode==='warehouse'?'Replenishment order':'Order'):t==='return'?'Return':t==='change'?'Address change':'Cancellation';
 const HEALTH={green:['good','✓','Healthy'],yellow:['warn','!','Needs attention'],red:['crit','✕','Account down']};
 const hpill=h=>{const x=HEALTH[h];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
 const isOverdue=r=>r.status==='notified'&&r.hoursAgo>=24;
 const RS={notified:['idle','○','Awaiting supplier'],ack:['info','◐','In progress'],done:['good','✓','Completed'],declined:['crit','!','Cannot cancel'],overdue:['crit','!','Overdue']};
-const spill=r=>{const x=RS[isOverdue(r)?'overdue':r.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`+(r.addrPending?` <span class="pill warn"><b>!</b>Address changed</span>`:'')+(r.addrConflict?` <span class="pill crit"><b>!</b>Shipped to old address</span>`:'')};
+const spill=r=>{const x=(r.type==='change'&&r.status==='declined')?['crit','!','Already shipped']:RS[isOverdue(r)?'overdue':r.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`+(r.addrPending?` <span class="pill warn"><b>!</b>Address change pending</span>`:'')+(r.addrConflict?` <span class="pill crit"><b>!</b>Shipped to old address</span>`:'')};
 const openReqs=r=>r.status!=='done'&&r.status!=='declined';
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
 const supName=id=>SUPPLIERS[id].name;
@@ -1007,25 +1007,38 @@ const addrStr=a=>`${a.name}, ${a.line1}${a.line2?', '+a.line2:''}, ${a.city}, ${
 const addrLabel=r=>r.type==='return'?'Return-to address':'Ship-to address';
 const addrFields=(p,a)=>`<div class="prow" style="grid-template-columns:1fr 1fr;padding:0;border:0;margin-bottom:8px"><input type="text" id="${p}-name" value="${esc(a.name)}" placeholder="Name or company" aria-label="Name or company" style="grid-column:1/-1"><input type="text" id="${p}-l1" value="${esc(a.line1)}" placeholder="Street address" aria-label="Street address" style="grid-column:1/-1"><input type="text" id="${p}-l2" value="${esc(a.line2)}" placeholder="Apt, suite, dock (optional)" aria-label="Address line 2" style="grid-column:1/-1"><input type="text" id="${p}-city" value="${esc(a.city)}" placeholder="City" aria-label="City"><input type="text" id="${p}-st" value="${esc(a.state)}" placeholder="State" aria-label="State"><input type="text" id="${p}-zip" value="${esc(a.zip)}" placeholder="ZIP" aria-label="ZIP"><input type="text" id="${p}-ctry" value="${esc(a.country)}" placeholder="Country" aria-label="Country"><input type="text" id="${p}-ph" value="${esc(a.phone)}" placeholder="Phone" aria-label="Phone" style="grid-column:1/-1"></div>`;
 function readAddr(p){const g=k=>$('#'+p+'-'+k).value.trim(),a={name:g('name'),line1:g('l1'),line2:g('l2'),city:g('city'),state:g('st'),zip:g('zip'),country:g('ctry')||'US',phone:g('ph')};return a.name&&a.line1&&a.city&&a.state&&a.zip?a:null}
-function fillNewAddr(){const kind=$('#nt').value,b=brandById(+$('#nb').value);$('#naddr').innerHTML=`<div class="field" style="margin-bottom:6px"><label>${kind==='return'?'Return-to address':'Ship-to address'}</label></div>`+addrFields('na',sampleAddr(kind,b))}
+function fillNewAddr(){
+  const kind=$('#nt').value,b=brandById(+$('#nb').value),ch=kind==='change';
+  ['ns','nq'].forEach(i=>{const f=$('#'+i).closest('.field');if(f)f.style.display=ch?'none':''});
+  $('#nr').innerHTML=(ch?['Customer asked for a new address','Address typo','Return location changed','Other']:['Item arrived damaged','Wrong item sent','Customer changed their mind','Customer order','Restock for upcoming campaign']).map(x=>`<option>${x}</option>`).join('');
+  $('#naddr').innerHTML=`<div class="field" style="margin-bottom:6px"><label>${ch?'New shipping address':kind==='return'?'Return-to address':'Ship-to address'}</label></div>`+addrFields('na',sampleAddr(ch?'order':kind,b));
+}
 function supAddr(r){
+  if(r.type==='change')return '';
   const done=r.status==='done'||r.status==='declined';
   let h=`<div style="border-top:1px solid var(--line);padding-top:10px"><div class="small"><b>${addrLabel(r)}</b></div><div>${esc(addrStr(r.addr))}</div><div class="small">Phone ${esc(r.addr.phone)}</div>`;
-  if(r.addrPending&&!done)h+=`<div class="msg" style="margin:10px 0 0;border:1px solid var(--crit)"><div class="k down">Address changed by the brand team</div>Was: ${esc(addrStr(r.addrOld))}<br>Now: <b>${esc(addrStr(r.addr))}</b><div class="row" style="margin-top:10px"><button class="btn primary sm" data-act="supaddrok" data-id="${r.id}">Got it, using the new address</button><button class="btn sm" data-act="supaddrno" data-id="${r.id}">Already shipped to the old address</button></div></div>`;
+  if(r.addrPending&&!done)h+=`<div class="msg" style="margin:10px 0 0;border:1px solid var(--warn)"><div class="k">Address change requested</div>The brand team asked to change this address${requests.find(x=>x.parent===r.id&&(x.status==='notified'||x.status==='ack'))?' in <b class="mono">'+requests.find(x=>x.parent===r.id&&(x.status==='notified'||x.status==='ack')).id+'</b>':''}. Confirm it on that request. Until then, use the address shown above.</div>`;
   if(r.addrConflict)h+=`<div class="small down" style="margin-top:8px">! You told the brand team this already shipped to the old address.</div>`;
   return h+'</div>';
 }
+/* ---------- address change requests (CHG) ---------- */
+function chgBlock(r){
+  return `<h3 style="margin:20px 0 8px">Address change</h3><div class="msg" style="margin-bottom:8px">${r.addrOld?`<div class="small">Was</div>${esc(addrStr(r.addrOld))}<div class="small" style="margin-top:8px">Now</div>`:'<div class="small">New address</div>'}<b>${esc(addrStr(r.addr))}</b><div class="small">Phone ${esc(r.addr.phone)}</div></div>${r.parent?`<p class="small" style="margin:0">Changes the address on <button class="link mono" data-act="openreq" data-id="${r.parent}">${r.parent}</button>. That request updates when the supplier confirms.</p>`:'<p class="small" style="margin:0">Not linked to an existing request.</p>'}`;
+}
+function chgSup(r){
+  return `<div><b>Change the address on order #${r.orderNo}</b>${r.parent?` <span class="small">(${r.parent})</span>`:''}<div class="small">Reason: ${esc(r.reason)}</div></div><div class="msg" style="margin:10px 0 0"><div class="k">Address change</div>${r.addrOld?`Was: ${esc(addrStr(r.addrOld))}<br>`:''}Now: <b>${esc(addrStr(r.addr))}</b></div>`;
+}
 function addrBlock(r){
-  const open=r.status==='notified'||r.status==='ack';
-  return `<h3 style="margin:20px 0 8px">${addrLabel(r)}</h3><div class="msg" style="margin-bottom:8px">${esc(addrStr(r.addr))}<div class="small">Phone ${esc(r.addr.phone)}</div>${r.addrPending?'<div class="small down" style="margin-top:6px">! Changed. Waiting for the supplier to confirm the new address.</div>':''}${r.addrConflict?'<div class="small down" style="margin-top:6px">! Supplier says it already shipped to the old address. Contact them now.</div>':''}</div>${open?`<button class="btn" data-act="addrform" data-id="${r.id}">Change address</button>`:`<p class="small" style="margin:0">This request is ${r.status==='done'?'completed':'closed'}, so the address is locked. If something must change, contact the supplier now.</p>`}`;
+  const open=r.status==='notified'||r.status==='ack', kids=requests.filter(x=>x.parent===r.id), pend=kids.find(k=>k.status==='notified'||k.status==='ack');
+  return `<h3 style="margin:20px 0 8px">${addrLabel(r)}</h3><div class="msg" style="margin-bottom:8px">${esc(addrStr(r.addr))}<div class="small">Phone ${esc(r.addr.phone)}</div>${pend?`<div class="small down" style="margin-top:6px">! Address change <button class="link mono" data-act="openreq" data-id="${pend.id}">${pend.id}</button> is waiting for the supplier to confirm.</div>`:''}${r.addrConflict?'<div class="small down" style="margin-top:6px">! Supplier says it already shipped to the old address. Contact them now.</div>':''}</div>${kids.length?`<div class="list" style="margin-bottom:10px">${kids.map(k=>`<div><span><button class="link mono" data-act="openreq" data-id="${k.id}">${k.id}</button> <span class="small">${esc(addrStr(k.addr))}</span></span>${spill(k)}</div>`).join('')}</div>`:''}${open?(pend?'':`<button class="btn" data-act="addrform" data-id="${r.id}">Request an address change</button>`):`<p class="small" style="margin:0">This request is ${r.status==='done'?'completed':'closed'}, so the address is locked. If something must change, contact the supplier now.</p>`}`;
 }
 function addrModal(id){
   const r=requests.find(x=>x.id===id);
-  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Change address"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Change ${addrLabel(r).toLowerCase()}</h2><button class="btn sm" data-act="closelayer2">Close</button></div><p class="small" style="margin:0 0 12px">${r.id} · order #${r.orderNo} · ${esc(brandById(r.brandId).name)}</p>${addrFields('ae',r.addr)}
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Change address"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Request an address change</h2><button class="btn sm" data-act="closelayer2">Close</button></div><p class="small" style="margin:0 0 12px">${r.id} · order #${r.orderNo} · ${esc(brandById(r.brandId).name)}</p>${addrFields('ae',r.addr)}
   <div class="field"><label for="ae-why">Reason</label><select id="ae-why"><option>Customer asked for a new address</option><option>Address typo</option><option>Return location changed</option><option>Other</option></select></div>
   <label class="tog"><input type="checkbox" id="ae-urgent" ${r.status==='ack'?'checked':''}>Alert the supplier now (portal, WhatsApp and SMS)</label>
-  <p class="small" style="margin:4px 0 12px">The supplier has to confirm the new address before they ship. Turn this on when they may already be working on it.</p>
-  <div id="ae-err" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="addrsave" data-id="${r.id}" style="width:100%">Save new address</button></div></div>`;
+  <p class="small" style="margin:4px 0 12px">This creates a separate change request (CHG). The supplier confirms it, and the original request updates once they do. Turn the alert on when they may already be working on it.</p>
+  <div id="ae-err" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="addrsave" data-id="${r.id}" style="width:100%">Send change request</button></div></div>`;
 }
 
 /* ---------- urgent alerts: reach a supplier in real time ---------- */
@@ -1110,8 +1123,10 @@ setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(el=>{const ms=+e
 function alertsFor(ref){const l=alerts.filter(a=>a.ref===ref);return l.length?`<h3 style="margin:20px 0 8px">Urgent alerts</h3><div class="list">${l.map(a=>`<div><span><button class="link mono" data-act="openalert" data-id="${a.id}">${a.id}</button> <span class="small">${esc(a.message.slice(0,80))}${a.message.length>80?'…':''}</span></span>${aPill(a)}</div>`).join('')}</div>`:''}
 /* sample data */
 (function(){
-  const old=requests.find(r=>r.status==='ack');
-  if(old){const prev=Object.assign({},old.addr);old.addr=Object.assign({},old.addr,{line1:'88 Elm Court',line2:'',city:'Boulder',state:'CO',zip:'80301'});old.addrOld=prev;old.addrPending=true;old.addrHistory.unshift({at:Date.now()-2*36e5,by:'Rina Castillo',old:prev,new:Object.assign({},old.addr),reason:'Customer asked for a new address'});old.events.unshift({sys:true,t:'Shipping address changed by Rina Castillo',ago:2})}
+  const old=requests.find(r=>r.status==='ack'&&r.type!=='change');
+  if(old){const prev=Object.assign({},old.addr),na=Object.assign({},old.addr,{line1:'88 Elm Court',line2:'',city:'Boulder',state:'CO',zip:'80301'});
+    const chg=mkReq({type:'change',parent:old.id,brandId:old.brandId,supplier:old.supplier,orderNo:old.orderNo,items:[{sku:'–',name:'Address update',qty:0}],reason:'Customer asked for a new address',addr:na,addrOld:prev,by:'Rina Castillo',hoursAgo:2});
+    requests.unshift(chg);old.addrPending=true;old.chg=chg.id}
   const cx=requests.find(r=>r.id==='CXL-1046')||requests.find(r=>r.type==='cancellation'), po1=purchaseOrders.find(p=>p.id==='PO-2409')||purchaseOrders.find(p=>poLate(p)), po2=purchaseOrders.find(p=>p.id==='PO-2412')||purchaseOrders.find(p=>p.status==='Shipped');
   sendAlert({supplier:cx.supplier,ref:cx.id,template:'cancel',message:ALERT_TPL.cancel[1](refLabel(cx.id)),channels:['portal','whatsapp','sms'],sentAt:Date.now()-4*6e4,by:'Rina Castillo'});
   if(po1)sendAlert({supplier:po1.supplier,ref:po1.id,template:'tracking',message:ALERT_TPL.tracking[1](refLabel(po1.id)),sentAt:Date.now()-3*36e5,status:'acked',ackedAt:Date.now()-170*6e4,reply:'On it. Shipping Friday, tracking to follow.',by:'Ben Hoang'});
@@ -1180,7 +1195,7 @@ function payDrawer(id){
 /* ---------- collapsible sections inside the side windows ---------- */
 function enhanceSections(root){
   root.querySelectorAll('.panel').forEach(panel=>{
-    const lab=panel.getAttribute('aria-label')||'', kind=/^PO-/.test(lab)?'po':/^PAY-/.test(lab)?'pay':/^ALT-/.test(lab)?'alert':/^(Request )?(RET|ORD|CXL)-/.test(lab)?'req':'';
+    const lab=panel.getAttribute('aria-label')||'', kind=/^PO-/.test(lab)?'po':/^PAY-/.test(lab)?'pay':/^ALT-/.test(lab)?'alert':/^(Request )?(RET|ORD|CXL|CHG)-/.test(lab)?'req':'';
     if(!kind)return;
     [...panel.querySelectorAll('h3')].forEach(h=>{
       const par=h.parentElement;
@@ -1228,7 +1243,6 @@ function notifsSup(sid){
   alerts.forEach(a=>{if(a.dir==='out'&&a.supplier===sid&&a.status==='open'&&!a.resolved)add('s-alert:'+a.id,'alert','Urgent message from the brand team',a.message,a.sentAt,'top',{})});
   requests.forEach(r=>{if(r.supplier===sid){
     if(r.status==='notified')add('s-req:'+r.id,'request',`New ${typeLabel(r.type,brandById(r.brandId)).toLowerCase()} ${r.id}`,`${brandById(r.brandId).name} · order #${r.orderNo}`,T0-r.hoursAgo*36e5,'suptab',{t:'requests'});
-    if(r.addrPending&&r.status!=='done')add('s-addr:'+r.id,'alert',`Address changed on ${r.id}`,`Confirm the new address before it ships`,r.addrHistory[0]?r.addrHistory[0].at:T0,'suptab',{t:'requests'});
   }});
   purchaseOrders.forEach(po=>{if(po.supplier===sid&&po.status==='Sent')add('s-po:'+po.id,'po',`New purchase order ${po.id}`,`${brandById(po.brandId).name} · ${money0(poTotal(po))}`,+po.sentOn,'suptab',{t:'pos'})});
   comments.forEach(c=>{if(c.kind==='shared'&&c.role!=='supplier'&&supOfRef(c.ref)===sid)add('s-cm:'+c.id,'message',`Message from the brand team on ${c.ref}`,c.text,c.at,'supthread',{ref:c.ref},c.readBySupplier)});
@@ -1262,7 +1276,7 @@ function renderRequests(){
   const chip=(k,l)=>`<button class="chip" data-act="rq" data-k="${k}" aria-pressed="${S.rq===k}">${l}${k?` · ${cnt[k]}`:''}</button>`;
   return `<div class="head"><div><h1>Supplier requests</h1><p class="sub">Orders, returns and cancellations sent to suppliers. Suppliers are notified automatically and reply in their portal.</p></div><button class="btn primary" data-act="newreq">+ New supplier request</button></div>
   <div class="chips">${chip('','All')}${chip('overdue','Overdue')}${chip('notified','Awaiting supplier')}${chip('ack','In progress')}${chip('done','Completed')}${chip('declined','Cannot cancel')}</div>
-  <div class="filters"><select id="rtype" aria-label="Type"><option value="">All types</option><option value="order" ${S.rtype==='order'?'selected':''}>Orders</option><option value="return" ${S.rtype==='return'?'selected':''}>Returns</option><option value="cancellation" ${S.rtype==='cancellation'?'selected':''}>Cancellations</option></select>
+  <div class="filters"><select id="rtype" aria-label="Type"><option value="">All types</option><option value="order" ${S.rtype==='order'?'selected':''}>Orders</option><option value="return" ${S.rtype==='return'?'selected':''}>Returns</option><option value="cancellation" ${S.rtype==='cancellation'?'selected':''}>Cancellations</option><option value="change" ${S.rtype==='change'?'selected':''}>Address changes</option></select>
   <select id="rsup" aria-label="Supplier"><option value="">All suppliers</option>${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.rsup==s.id&&S.rsup!==''?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
   ${reqTable(f)}`;
 }
@@ -1290,34 +1304,36 @@ function supRequests(){
 function supCard(r){
   const b=brandById(r.brandId), it=r.items[0], od=isOverdue(r);
   let action='';
-  if(r.status==='notified'){
+  if(r.type==='change'&&(r.status==='notified'||r.status==='ack')){
+    action=`<button class="btn primary" data-act="supchgok" data-id="${r.id}">Confirm: I'll use the new address</button><button class="btn" data-act="supchgno" data-id="${r.id}">Already shipped to the old address</button>`;
+  }else if(r.status==='notified'){
     action=`<button class="btn primary" data-act="ack" data-id="${r.id}">Acknowledge</button>`;
   }else if(r.status==='ack'){
     if(r.type==='return') action=`<div class="upl" style="flex:1;min-width:260px"><div class="field" style="margin:0;flex:1;min-width:200px"><label for="f-${r.id}">Return shipping label (PDF)</label><input type="file" id="f-${r.id}" accept="application/pdf,image/*"></div></div><div class="field" style="margin:0"><label for="c-${r.id}">Carrier</label><select id="c-${r.id}"><option>UPS</option><option>USPS</option><option>FedEx</option><option>DHL</option></select></div><div class="field" style="margin:0"><label for="t-${r.id}">Tracking number</label><input type="text" id="t-${r.id}" placeholder="1Z999AA10123456784"></div><button class="btn primary" data-act="submitreturn" data-id="${r.id}">Send to customer</button>`;
     else if(r.type==='order') action=`<div class="field" style="margin:0"><label for="c-${r.id}">Carrier</label><select id="c-${r.id}"><option>UPS</option><option>USPS</option><option>FedEx</option><option>DHL</option></select></div><div class="field" style="margin:0"><label for="t-${r.id}">Tracking number</label><input type="text" id="t-${r.id}" placeholder="1Z999AA10123456784"></div><button class="btn primary" data-act="submitship" data-id="${r.id}">${b.mode==='warehouse'?'Mark shipped to warehouse':'Mark shipped'}</button>`;
     else action=`<button class="btn primary" data-act="cxlok" data-id="${r.id}">Confirm: not shipped, cancel it</button><button class="btn" data-act="cxlno" data-id="${r.id}">Already shipped</button>`;
   }else{
-    action=`<div class="small">${r.status==='declined'?esc(r.note):`${esc(r.carrier)} · <span class="mono">${esc(r.tracking)}</span>${r.label?` · ${esc(r.label)}`:''}`}</div>`;
+    action=`<div class="small">${r.status==='declined'?esc(r.note):r.type==='change'?'You confirmed the new address.':`${esc(r.carrier)} · <span class="mono">${esc(r.tracking)}</span>${r.label?` · ${esc(r.label)}`:''}`}</div>`;
   }
   return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span>${unreadSup(r.id)?`<span class="newdot">● ${unreadSup(r.id)} new message${unreadSup(r.id)>1?'s':''}</span>`:''}</div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
-  <div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>
+  ${r.type==='change'?chgSup(r):`<div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>`}
   ${supAddr(r)}<div class="acts">${action}</div>${thread(r.id,'supplier')}</div>`;
 }
 
 /* ---------- overlays ---------- */
 function reqDrawer(id){
   const r=requests.find(x=>x.id===id), b=brandById(r.brandId), s=SUPPLIERS[r.supplier], link='hub.example.com/s/'+btoa(r.id).replace(/=/g,'').toLowerCase()+'x7';
-  const verb={order:b.mode==='warehouse'?'replenishment order':'order',return:'return',cancellation:'cancellation'}[r.type];
+  const verb={order:b.mode==='warehouse'?'replenishment order':'order',return:'return',cancellation:'cancellation',change:'address change request'}[r.type];
   const ev=r.events.slice().sort((a,c)=>a.ago-c.ago);
   $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" role="dialog" aria-label="Request ${r.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${r.id}</h2><div class="small">${typeLabel(r.type,b)} · ${esc(b.name)}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
   <div style="margin:14px 0">${spill(r)}</div><div class="row" style="margin-bottom:12px"><button class="btn urgent" data-act="urgent" data-ref="${r.id}">${ico('bolt')}Contact supplier now</button></div>
-  <dl><dt>Order</dt><dd class="mono">#${r.orderNo}</dd><dt>Item</dt><dd>${r.items[0].qty} × ${esc(r.items[0].name)} <span class="mono small">${r.items[0].sku}</span></dd><dt>Reason</dt><dd>${esc(r.reason)}</dd><dt>Supplier</dt><dd>${esc(s.name)}</dd>${r.carrier?`<dt>Carrier</dt><dd>${esc(r.carrier)}</dd><dt>Tracking</dt><dd class="mono">${esc(r.tracking)}</dd>`:''}${r.note?`<dt>Supplier note</dt><dd>${esc(r.note)}</dd>`:''}</dl>
-  ${addrBlock(r)}
+  <dl><dt>Order</dt><dd class="mono">#${r.orderNo}</dd>${r.type==='change'?'':`<dt>Item</dt><dd>${r.items[0].qty} × ${esc(r.items[0].name)} <span class="mono small">${r.items[0].sku}</span></dd>`}<dt>Reason</dt><dd>${esc(r.reason)}</dd><dt>Supplier</dt><dd>${esc(s.name)}</dd>${r.carrier?`<dt>Carrier</dt><dd>${esc(r.carrier)}</dd><dt>Tracking</dt><dd class="mono">${esc(r.tracking)}</dd>`:''}${r.note?`<dt>Supplier note</dt><dd>${esc(r.note)}</dd>`:''}</dl>
+  ${r.type==='change'?chgBlock(r):addrBlock(r)}
   ${docsSection(allDocs().filter(d=>d.ref===r.id),'req:'+r.id,r.type==='return'?'No return label yet. The supplier uploads it in their portal.':'No files for this request.')}
   ${thread(r.id,'ops')}
   <h3 style="margin:20px 0 8px">What the supplier received</h3>
-  <div class="msg"><div class="k">WhatsApp</div>New ${verb} for ${esc(b.name)}, order #${r.orderNo}. ${r.items[0].qty} × ${esc(r.items[0].name)}. Open to respond: ${link}</div>
-  <div class="msg"><div class="k">Email to ${esc(s.email)}</div><b>[Brand Hub] ${typeLabel(r.type,b)} ${r.id} · ${esc(b.name)}</b><br>Please acknowledge and ${r.type==='return'?'upload the return label and tracking number':r.type==='order'?'add tracking once shipped':'confirm the order has not shipped'}. ${link}</div>
+  <div class="msg"><div class="k">WhatsApp</div>New ${verb} for ${esc(b.name)}, order #${r.orderNo}. ${r.type==='change'?'New address: '+esc(addrStr(r.addr)):r.items[0].qty+' × '+esc(r.items[0].name)}. Open to respond: ${link}</div>
+  <div class="msg"><div class="k">Email to ${esc(s.email)}</div><b>[Brand Hub] ${typeLabel(r.type,b)} ${r.id} · ${esc(b.name)}</b><br>Please acknowledge and ${r.type==='return'?'upload the return label and tracking number':r.type==='order'?'add tracking once shipped':r.type==='change'?'confirm you will use the new address':'confirm the order has not shipped'}. ${link}</div>
   ${r.status==='notified'||r.status==='ack'?`<button class="btn" data-act="remind" data-id="${r.id}">Send reminder</button>`:''}
   ${alertsFor(r.id)}<h3 style="margin:22px 0 10px">Activity</h3><ul class="timeline">${ev.map(e=>`<li class="${e.sys?'sys':''}"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
 }
@@ -1326,7 +1342,7 @@ function newReqModal(preBrand,preNo){
   $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="New supplier request"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">New supplier request</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
   <div class="field"><label for="nb">Brand</label><select id="nb">${brands.map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
   <div id="nbinfo" class="small" style="margin:-4px 0 12px"></div>
-  <div class="field"><label for="nt">Request type</label><select id="nt"><option value="return">Return</option><option value="cancellation">Cancellation</option><option value="order">Order</option></select></div>
+  <div class="field"><label for="nt">Request type</label><select id="nt"><option value="return">Return</option><option value="cancellation">Cancellation</option><option value="order">Order</option><option value="change">Address change</option></select></div>
   <div class="field"><label for="no">Shopify order number</label><input type="text" id="no" value="${preNo?'#'+preNo:''}" placeholder="#1043"></div>
   <div class="field"><label for="ns">Item</label><select id="ns"></select></div>
   <div class="field"><label for="nq">Quantity</label><input type="text" id="nq" value="1" inputmode="numeric"></div>
@@ -1444,10 +1460,10 @@ const ACTIONS={
     const r=requests.find(x=>x.id===e.dataset.id),a=readAddr('ae');
     if(!a){$('#ae-err').textContent='Complete the address: name, street, city, state and ZIP.';return}
     const why=$('#ae-why').value,urgent=$('#ae-urgent').checked;
-    r.addrOld=r.addr;r.addr=a;r.addrPending=true;r.addrConflict=false;r.addrHistory.unshift({at:Date.now(),by:'You',old:r.addrOld,new:a,reason:why});
-    r.events.unshift({sys:true,t:`Shipping address changed (${why}): ${addrStr(a)}`,ago:0});
-    if(urgent)sendAlert({supplier:r.supplier,ref:r.id,template:'address',message:`URGENT: the address on ${r.id} (order #${r.orderNo}) changed. New address: ${addrStr(a)}. Please confirm before it ships.`,channels:['portal','whatsapp','sms']});
-    render();reqDrawer(r.id);toast(urgent?'Address changed. Supplier alerted now.':'Address changed. The supplier must confirm it.');
+    const c=mkReq({type:'change',parent:r.id,brandId:r.brandId,supplier:r.supplier,orderNo:r.orderNo,items:[{sku:'–',name:'Address update',qty:0}],reason:why,addr:a,addrOld:r.addr,by:'You',hoursAgo:0});
+    requests.unshift(c);r.addrPending=true;r.addrConflict=false;r.events.unshift({sys:true,t:`Address change ${c.id} sent to the supplier (${why})`,ago:0});
+    if(urgent)sendAlert({supplier:r.supplier,ref:c.id,template:'address',message:`URGENT: please confirm the new address for ${r.id} (order #${r.orderNo}) in ${c.id}. New address: ${addrStr(a)}. Reply as soon as you see this.`,channels:['portal','whatsapp','sms']});
+    render();reqDrawer(c.id);toast(urgent?c.id+' sent. Supplier alerted now.':c.id+' sent. The supplier must confirm it.');
   },
   supaddrok:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.events.unshift({sys:false,t:'Supplier confirmed the new address',ago:0});alerts.filter(a=>a.ref===r.id&&a.template==='address'&&a.status==='open').forEach(a=>{a.status='acked';a.ackedAt=nowMs();a.reply='Confirmed the new address.'});render();toast('Thanks. The brand team can see you confirmed.')},
   supaddrno:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.addrConflict=true;r.events.unshift({sys:false,t:'Supplier says it already shipped to the old address',ago:0});sendAlert({dir:'in',supplier:r.supplier,ref:r.id,message:`${r.id} already shipped to the old address (${addrStr(r.addrOld)}). Please advise.`,channels:['portal'],by:SUPPLIERS[r.supplier].contact});render();toast('The ops team is alerted right now.')},
@@ -1467,6 +1483,18 @@ const ACTIONS={
   belltab:e=>{S.bellTab=e.dataset.k;renderTop()},
   bellall:()=>{curNotifs().forEach(n=>{(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;if(n.id.startsWith('cm:'))comments.forEach(c=>{if('cm:'+c.id===n.id)c.readByOps=true});if(n.id.startsWith('s-cm:'))comments.forEach(c=>{if('s-cm:'+c.id===n.id)c.readBySupplier=true})});renderTop()},
   bellgo:e=>{const n=curNotifs().find(x=>x.id===e.dataset.id);if(!n)return;(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;S.bellOpen=false;renderTop();bellGo(n)},
+  supchgok:e=>{
+    const c=requests.find(x=>x.id===e.dataset.id);c.status='done';c.events.unshift({t:'Supplier confirmed the new address',ago:0});
+    const p=requests.find(x=>x.id===c.parent);if(p){p.addr=c.addr;p.addrPending=false;p.addrConflict=false;p.events.unshift({t:`Shipping address updated through ${c.id}`,ago:0})}
+    alerts.filter(a=>a.ref===c.id&&a.status==='open').forEach(a=>{a.status='acked';a.ackedAt=nowMs();a.reply='Confirmed the new address.'});
+    render();toast('Confirmed. The brand team can see it.');
+  },
+  supchgno:e=>{
+    const c=requests.find(x=>x.id===e.dataset.id);c.status='declined';c.note='Already shipped to the old address.';c.events.unshift({t:'Supplier says it already shipped to the old address',ago:0});
+    const p=requests.find(x=>x.id===c.parent);if(p){p.addrPending=false;p.addrConflict=true;p.events.unshift({t:`${c.id}: supplier says it already shipped to the old address`,ago:0})}
+    sendAlert({dir:'in',supplier:c.supplier,ref:c.id,message:`${c.id}: ${p?p.id:'order #'+c.orderNo} already shipped to the old address. Please advise.`,channels:['portal'],by:SUPPLIERS[c.supplier].contact});
+    render();toast('The ops team is alerted right now.');
+  },
   suptab:e=>{S.supTab=e.dataset.t;render()},
   supconfirm:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),no=$('#so-'+po.id).value.trim(),d=$('#sd-'+po.id).value.split('-').map(Number);po.status='Confirmed';if(no)po.supplierRef=no;if(d.length===3&&!d.some(isNaN))po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,`Supplier confirmed${no?' (order '+no+')':''}, arrival ${fdate(po.eta)}`);render();toast('PO confirmed. The brand team is notified.')},
   supprod:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='In production';poEvent(po,'Supplier started production');render();toast('Marked in production')},
@@ -1493,6 +1521,12 @@ const ACTIONS={
     if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
     if(!(q>0)){$('#nerr').textContent='Quantity must be 1 or more.';return}
     const ad=readAddr('na');if(!ad){$('#nerr').textContent='Complete the address: name, street, city, state and ZIP.';return}
+    if($('#nt').value==='change'){
+      const par=requests.find(x=>x.brandId===b.id&&String(x.orderNo)===no&&x.type!=='change');
+      const c=mkReq({type:'change',parent:par?par.id:null,brandId:b.id,supplier:b.supplier,orderNo:no,items:[{sku:'–',name:'Address update',qty:0}],reason:$('#nr').value,addr:ad,addrOld:par?par.addr:null,by:'You',hoursAgo:0});
+      requests.unshift(c);if(par){par.addrPending=true;par.events.unshift({sys:true,t:`Address change ${c.id} sent to the supplier`,ago:0})}
+      render();reqDrawer(c.id);toast(c.id+' sent. The supplier must confirm the new address.');return;
+    }
     const sk=b.skus[+$('#ns').value];
     const r=mkReq({type:$('#nt').value,brandId:b.id,supplier:b.supplier,orderNo:no,items:[{sku:sk.sku,name:sk.name,qty:q}],reason:$('#nr').value,addr:ad,by:'You',hoursAgo:0});
     requests.unshift(r);render();reqDrawer(r.id);toast('Supplier notified by email and WhatsApp');
