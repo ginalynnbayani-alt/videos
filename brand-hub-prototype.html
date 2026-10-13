@@ -161,6 +161,11 @@ dt{color:var(--muted)} dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .btn.urgent:hover{background:color-mix(in srgb,var(--crit) 12%,transparent)}
 a.btn{text-decoration:none;display:inline-block;color:var(--ink)}
 .alertbar{display:grid;gap:8px;background:color-mix(in srgb,var(--crit) 10%,var(--surface));border:1px solid var(--crit);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.thread{display:grid;gap:8px;margin:0 0 12px}
+.cmsg{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.cmsg.internal{background:color-mix(in srgb,var(--warn) 13%,var(--surface));border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.cmsg .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:4px}
+.mention{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 3px;font-weight:600}
 </style>
 
 <div class="shell">
@@ -269,7 +274,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -445,7 +450,7 @@ function tabOrders(b){
   <p class="small" style="margin-top:10px">Orders sync from Shopify. Requests made here go to ${esc(supName(b.supplier))}.</p>`;
 }
 function reqTable(list,showBrand=true){
-  return `<div class="tablewrap"><table><thead><tr><th>Request</th>${showBrand?'<th>Brand</th>':''}<th>Order</th><th>Supplier</th><th>Created</th><th>Status</th><th>Tracking</th></tr></thead><tbody>${list.map(r=>{const b=brandById(r.brandId);return `<tr data-act="openreq" data-id="${r.id}" tabindex="0"><td><div class="name">${r.id}</div><div class="small">${typeLabel(r.type,b)}</div></td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td class="mono">#${r.orderNo}</td><td>${esc(supName(r.supplier))}</td><td class="small" data-v="${r.hoursAgo}">${ago(r.hoursAgo)}</td><td>${spill(r)}</td><td class="mono">${r.tracking||'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No requests yet.</div>'}</div>`;
+  return `<div class="tablewrap"><table><thead><tr><th>Request</th>${showBrand?'<th>Brand</th>':''}<th>Order</th><th>Supplier</th><th>Created</th><th>Status</th><th>Tracking</th><th>Messages</th></tr></thead><tbody>${list.map(r=>{const b=brandById(r.brandId);return `<tr data-act="openreq" data-id="${r.id}" tabindex="0"><td><div class="name">${r.id}</div><div class="small">${typeLabel(r.type,b)}</div></td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td class="mono">#${r.orderNo}</td><td>${esc(supName(r.supplier))}</td><td class="small" data-v="${r.hoursAgo}">${ago(r.hoursAgo)}</td><td>${spill(r)}</td><td class="mono">${r.tracking||'<span class="small">–</span>'}</td><td data-v="${cmCount(r.id)}">${msgCell(r.id)}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No requests yet.</div>'}</div>`;
 }
 const tabRequests=b=>reqTable(requests.filter(r=>r.brandId===b.id).sort((a,c)=>a.hoursAgo-c.hoursAgo),false);
 function tabMarketing(b){
@@ -556,7 +561,7 @@ function renderOpsHome(){
   <div class="cols2">
    <div class="card"><h2>Overdue supplier requests</h2>${od.length?`<div class="list" style="margin-top:6px">${od.map(r=>{const b=brandById(r.brandId);return `<div><span><button class="link" data-act="openreq" data-id="${r.id}">${r.id}</button> <span class="small">${typeLabel(r.type,b)} · ${esc(b.name)}<br>${esc(supName(r.supplier))} · ${ago(r.hoursAgo)}</span></span><button class="btn sm" data-act="remindq" data-id="${r.id}">Send reminder</button></div>`}).join('')}</div>`:'<p class="small">Nothing overdue.</p>'}</div>
    <div class="card"><h2>Out of stock, biggest brands first</h2><div class="list" style="margin-top:6px">${outs.slice(0,8).map(o=>`<div><span><button class="link" data-act="brand" data-id="${o.b.id}">${esc(o.b.name)}</button><br><span class="small">${esc(o.s.name)} · held by ${esc(o.s.loc)}</span></span><button class="btn sm" data-act="newreq" data-id="${o.b.id}">Request restock</button></div>`).join('')}</div></div>
-   <div class="card"><h2>Stores not syncing</h2>${stale.length?`<div class="list" style="margin-top:6px">${stale.map(b=>`<div><span><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><br><span class="small mono">${esc(b.slug)}.myshopify.com · last sync ${Math.round(b.syncMin/60)} h ago</span></span><button class="btn sm" data-act="reconnect">Send reconnect link</button></div>`).join('')}</div>`:'<p class="small">Every store is syncing.</p>'}</div>${payCard}${poCard}${invReviewCard()}</div>`;
+   <div class="card"><h2>Stores not syncing</h2>${stale.length?`<div class="list" style="margin-top:6px">${stale.map(b=>`<div><span><button class="link" data-act="brand" data-id="${b.id}">${esc(b.name)}</button><br><span class="small mono">${esc(b.slug)}.myshopify.com · last sync ${Math.round(b.syncMin/60)} h ago</span></span><button class="btn sm" data-act="reconnect">Send reconnect link</button></div>`).join('')}</div>`:'<p class="small">Every store is syncing.</p>'}</div>${payCard}${poCard}${invReviewCard()}${msgCard()}</div>`;
 }
 
 /* ---------- partner success workspace ---------- */
@@ -751,7 +756,7 @@ function poDrawer(id){
   <dl><dt>Payment terms</dt><dd>${esc(po.terms)}</dd>${po.supplierRef?`<dt>Supplier order no.</dt><dd class="mono">${esc(po.supplierRef)}</dd>`:''}${po.docs&&po.docs.length?`<dt>Documents</dt><dd>${po.docs.map((n,k)=>docBtn('po:'+po.id+':'+k,n)).join(', ')}</dd>`:''}<dt>Ordered</dt><dd>${fdateY(po.createdOn)}</dd><dt>ETA</dt><dd><input type="date" data-po="eta" data-id="${po.id}" value="${isoDate(po.eta)}" aria-label="ETA" ${po.status==='Received'||po.status==='Cancelled'?'disabled':''}> ${poLate(po)?'<span class="small down">! Late</span>':''}</dd>${po.tracking?`<dt>Shipment</dt><dd>${esc(po.carrier)} · <span class="mono">${esc(po.tracking)}</span></dd>`:''}${po.receivedOn?`<dt>Received</dt><dd>${fdateY(po.receivedOn)}</dd>`:''}</dl>
   <h3 style="margin:20px 0 8px">Items</h3><div class="tablewrap"><table style="min-width:520px"><thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Line total</th><th class="num">Received</th></tr></thead><tbody>${po.lines.map(l=>`<tr><td>${esc(l.name)}<div class="small mono">${l.sku}</div></td><td class="num">${l.qty}</td><td class="num">${usd2(l.unit)}</td><td class="num">${money0(l.qty*l.unit)}</td><td class="num">${po.status==='Received'?l.recv:'–'}</td></tr>`).join('')}<tr><td colspan="3" class="small">Freight and handling (4%)</td><td class="num">${money0(po.freight)}</td><td></td></tr><tr><td colspan="3"><b>Total</b></td><td class="num"><b>${money0(tot)}</b></td><td></td></tr></tbody></table></div>
   <h3 style="margin:20px 0 8px">Payments</h3>${pays.length?`<div class="list">${pays.map(p=>`<div><span><b>${p.kind}</b> ${money0(p.amount)}<div class="small">${p.paidOn?`Paid ${fdate(p.paidOn)} · ${esc(p.method)} ${esc(p.ref)}`:`Due ${fdate(p.due)} (${rel(p.due)})`}</div>${invLine(p)}</span><span class="row" style="gap:8px">${paySpill(p)}${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</span></div>`).join('')}</div><p class="small" style="margin:8px 0 0">Paid ${money0(paid)} of ${money0(tot)}. Outstanding ${money0(tot-paid)}.</p>`:`<p class="small">${po.status==='Draft'?'Payments are scheduled when the PO is sent.':'No payments.'}</p>`}
-  ${alertsFor(po.id)}<h3 style="margin:20px 0 10px">Activity</h3><ul class="timeline">${po.events.slice().sort((a,c)=>a.ago-c.ago).map(e=>`<li class="sys"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
+  ${thread(po.id,'ops')}${alertsFor(po.id)}<h3 style="margin:20px 0 10px">Activity</h3><ul class="timeline">${po.events.slice().sort((a,c)=>a.ago-c.ago).map(e=>`<li class="sys"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
 }
 function payModal(id){
   const p=payments.find(x=>x.id===id);
@@ -842,7 +847,7 @@ function supPoCard(po){
   return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b class="mono">${po.id}</b><span class="tag">${esc(b.name)}</span>${po.supplierRef?`<span class="tag">Your order ${esc(po.supplierRef)}</span>`:''}</div><div class="small" style="margin-top:4px">Ordered ${fdate(po.createdOn)} · arrival ${fdate(po.eta)} (${po.status==='Received'?'received':rel(po.eta)}) · ${esc(po.terms)}</div></div>${poPill(po)}</div>
   <div>${po.lines.map(l=>`<div>${l.qty.toLocaleString()} × <b>${esc(l.name)}</b> <span class="mono small">${l.sku}</span> <span class="small">at ${usd2(l.unit)}</span></div>`).join('')}<div class="small" style="margin-top:4px">Total ${money0(poTotal(po))} including freight and handling${po.changeReq?`<br><span class="down">! Your change request is with the brand team: ${esc(po.changeReq)}</span>`:''}</div></div>
   <div class="acts">${action}</div>
-  ${invs.length||miss.length?`<div style="border-top:1px solid var(--line);padding-top:10px"><div class="small" style="margin-bottom:6px"><b>Invoices</b></div>${invs.map(i=>`<div class="row" style="justify-content:space-between;margin-bottom:6px"><span>${esc(i.number)} · ${money0(i.amount)} <span class="small">${esc(i.file)}${i.status==='Disputed'?' · '+esc(i.reviewNote):''}</span></span>${invPill(i)}</div>`).join('')}${miss.length?`<button class="btn sm primary" data-act="invmodal" data-id="${po.id}">+ Add invoice</button> <span class="small">${miss.length} payment${miss.length>1?'s':''} without an invoice</span>`:''}</div>`:''}</div>`;
+  ${invs.length||miss.length?`<div style="border-top:1px solid var(--line);padding-top:10px"><div class="small" style="margin-bottom:6px"><b>Invoices</b></div>${invs.map(i=>`<div class="row" style="justify-content:space-between;margin-bottom:6px"><span>${esc(i.number)} · ${money0(i.amount)} <span class="small">${esc(i.file)}${i.status==='Disputed'?' · '+esc(i.reviewNote):''}</span></span>${invPill(i)}</div>`).join('')}${miss.length?`<button class="btn sm primary" data-act="invmodal" data-id="${po.id}">+ Add invoice</button> <span class="small">${miss.length} payment${miss.length>1?'s':''} without an invoice</span>`:''}</div>`:''}${thread(po.id,'supplier')}</div>`;
 }
 function supInvoices(sid){
   const mine=invoices.filter(i=>i.supplier===sid).sort((a,c)=>a.ago-c.ago), miss=missingInv(sid), pays=payments.filter(p=>p.supplier===sid);
@@ -1078,6 +1083,46 @@ function alertsFor(ref){const l=alerts.filter(a=>a.ref===ref);return l.length?`<
   alerts.sort((a,c)=>c.sentAt-a.sentAt);
 })();
 
+/* ---------- discussion threads linked to requests and POs ---------- */
+const TEAM=[...PEOPLE.ps,...PEOPLE.ops];
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const MENTION_RE=new RegExp('@('+[...TEAM].sort((a,b)=>b.length-a.length).map(escRe).join('|')+')','g');
+const fmtText=t=>esc(t).replace(MENTION_RE,'<span class="mention">$&</span>').replace(/\n/g,'<br>');
+const comments=[]; let cmSeq=0;
+const unreadOps=ref=>comments.filter(c=>c.ref===ref&&c.role==='supplier'&&!c.readByOps).length;
+const unreadSup=ref=>comments.filter(c=>c.ref===ref&&c.kind==='shared'&&c.role!=='supplier'&&!c.readBySupplier).length;
+const cmCount=ref=>comments.filter(c=>c.ref===ref).length;
+const msgCell=ref=>{const n=cmCount(ref),u=unreadOps(ref);return n?`${n}${u?` <span class="pill info"><b>●</b>${u} new</span>`:''}`:'<span class="small">–</span>'};
+function addComment(o){const c=Object.assign({id:'C'+(++cmSeq),kind:'internal',role:'ops',by:'You',at:Date.now(),text:'',readByOps:true,readBySupplier:false},o);comments.push(c);return c}
+function thread(ref,role){
+  const sup=role==='supplier', open=!sup||S.openThreads[ref];
+  const all=comments.filter(c=>c.ref===ref&&(!sup||c.kind==='shared')).sort((a,b)=>a.at-b.at);
+  const unread=sup?unreadSup(ref):0, sname=supName(supOfRef(ref));
+  if(!sup)comments.forEach(c=>{if(c.ref===ref&&c.role==='supplier')c.readByOps=true});
+  const msg=c=>`<div class="cmsg ${c.kind==='internal'?'internal':''}"><div class="meta"><b style="color:var(--ink)">${esc(sup&&c.by==='You'?'Ops team':c.by)}</b>${c.role==='supplier'?'<span class="tag">Supplier</span>':sup?'<span class="tag">Brand team</span>':''}${!sup?(c.kind==='internal'?'<span class="tag">Internal only</span>':'<span class="tag">Shared with supplier</span>'):''}<span>${ago((Date.now()-c.at)/36e5)}</span></div><div>${fmtText(c.text)}</div></div>`;
+  const head=sup?`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:10px"><span><b>Messages</b> <span class="small">${all.length} with the brand team${unread?` · <span class="down">${unread} new</span>`:''}</span></span><button class="btn sm" data-act="threadtoggle" data-ref="${ref}">${open?'Hide':'Open'}</button></div>`:`<h3 style="margin:20px 0 8px">Discussion <span class="small">(${all.length})</span></h3>`;
+  if(!open)return head;
+  const list=all.length?`<div class="thread">${all.map(msg).join('')}</div>`:`<p class="small" style="margin:0 0 10px">${sup?'No messages yet.':'No notes or messages yet. Notes are for your team. Shared messages go to '+esc(sname)+'.'}</p>`;
+  const chips=TEAM.map(n=>`<button class="btn sm" data-act="mention" data-ref="${ref}" data-n="${esc(n)}">@${esc(n.split(' ')[0])}</button>`).join('');
+  const composer=sup?`<div class="field" style="margin:0 0 8px"><label for="cm-${ref}">Message the brand team</label><textarea id="cm-${ref}" rows="2" placeholder="Write a message…"></textarea></div><button class="btn primary sm" data-act="cmpost" data-ref="${ref}" data-role="supplier">Send</button>`
+  :`<div class="field" style="margin:0 0 6px"><label for="cm-${ref}">Add to the discussion</label><textarea id="cm-${ref}" rows="3" placeholder="Write a note or a message…"></textarea></div><div class="row" style="gap:6px;margin-bottom:8px"><span class="small">Mention:</span>${chips}</div><div style="margin-bottom:10px"><label class="tog"><input type="radio" name="cmk-${ref}" value="internal" checked>Internal note. Only your team sees it.</label><label class="tog"><input type="radio" name="cmk-${ref}" value="shared">Share with ${esc(sname)}. They see it in the portal and get a WhatsApp message.</label></div><button class="btn primary" data-act="cmpost" data-ref="${ref}" data-role="ops">Post</button>`;
+  return `<div>${head}<div style="margin-top:${sup?'10px':'0'}">${list}${composer}</div></div>`;
+}
+function msgCard(){
+  const refs=[...new Set(comments.filter(c=>c.role==='supplier'&&!c.readByOps).map(c=>c.ref))];
+  return `<div class="card"><h2>New supplier messages</h2>${refs.length?`<div class="list" style="margin-top:6px">${refs.map(ref=>{const l=comments.filter(c=>c.ref===ref&&c.role==='supplier'&&!c.readByOps).sort((a,b)=>b.at-a.at)[0],isReq=requests.some(r=>r.id===ref);return `<div><span><button class="link mono" data-act="${isReq?'openreq':'openpo'}" data-id="${ref}">${ref}</button> <span class="small">${esc(supName(supOfRef(ref)))} · ${ago((Date.now()-l.at)/36e5)}<br>${esc(l.text.slice(0,90))}${l.text.length>90?'…':''}</span></span><button class="btn sm" data-act="${isReq?'openreq':'openpo'}" data-id="${ref}">Reply</button></div>`}).join('')}</div>`:'<p class="small">No new messages.</p>'}</div>`;
+}
+(function(){
+  const h=36e5, ack=requests.filter(r=>r.status==='ack'), od=requests.find(isOverdue), po=purchaseOrders.find(p=>p.status==='Confirmed')||purchaseOrders[0];
+  if(ack[0]){const r=ack[0],sn=SUPPLIERS[r.supplier].contact;
+    addComment({ref:r.id,by:'Rina Castillo',at:Date.now()-5*h,text:'Customer has called twice about this. Please prioritise. @Lynn can you reply to the brand?'});
+    addComment({ref:r.id,kind:'shared',by:'Rina Castillo',at:Date.now()-4*h,text:`Hi ${sn.split(' ')[0]}, can you confirm the ship date for this one?`});
+    addComment({ref:r.id,kind:'shared',role:'supplier',by:sn,at:Date.now()-25*60000,readByOps:false,readBySupplier:true,text:'Confirming we ship it tomorrow morning. Tracking to follow by noon.'});}
+  if(od)addComment({ref:od.id,by:'Ben Hoang',at:Date.now()-3*h,text:'Supplier has been slow on cancellations this week. Escalated, see the urgent alert. @Ben Hoang to follow up if no reply by 3pm.'});
+  if(ack[1]){const r=ack[1];addComment({ref:r.id,kind:'shared',by:'Ben Hoang',at:Date.now()-9*h,text:'Please use the new return label format from now on.',readBySupplier:true});}
+  if(po){addComment({ref:po.id,by:'Beatriz',at:Date.now()-20*h,text:'Terms agreed by phone: 50/50. Waiting on the deposit invoice.'});addComment({ref:po.id,kind:'shared',by:'Rina Castillo',at:Date.now()-18*h,text:'Please send the deposit invoice when you can.'});}
+})();
+
 /* ---------- ops requests & inventory ---------- */
 function renderRequests(){
   const all=requests.slice().sort((a,b)=>a.hoursAgo-b.hoursAgo);
@@ -1125,7 +1170,7 @@ function supCard(r){
   }
   return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span></div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
   <div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>
-  ${supAddr(r)}<div class="acts">${action}</div></div>`;
+  ${supAddr(r)}<div class="acts">${action}</div>${thread(r.id,'supplier')}</div>`;
 }
 
 /* ---------- overlays ---------- */
@@ -1137,6 +1182,7 @@ function reqDrawer(id){
   <div style="margin:14px 0">${spill(r)}</div><div class="row" style="margin-bottom:12px"><button class="btn urgent" data-act="urgent" data-ref="${r.id}">${ico('bolt')}Contact supplier now</button></div>
   <dl><dt>Order</dt><dd class="mono">#${r.orderNo}</dd><dt>Item</dt><dd>${r.items[0].qty} × ${esc(r.items[0].name)} <span class="mono small">${r.items[0].sku}</span></dd><dt>Reason</dt><dd>${esc(r.reason)}</dd><dt>Supplier</dt><dd>${esc(s.name)}</dd>${r.carrier?`<dt>Carrier</dt><dd>${esc(r.carrier)}</dd><dt>Tracking</dt><dd class="mono">${esc(r.tracking)}</dd>`:''}${r.label?`<dt>Label</dt><dd>${docBtn('req:'+r.id,r.label)}</dd>`:''}${r.note?`<dt>Supplier note</dt><dd>${esc(r.note)}</dd>`:''}</dl>
   ${addrBlock(r)}
+  ${thread(r.id,'ops')}
   <h3 style="margin:20px 0 8px">What the supplier received</h3>
   <div class="msg"><div class="k">WhatsApp</div>New ${verb} for ${esc(b.name)}, order #${r.orderNo}. ${r.items[0].qty} × ${esc(r.items[0].name)}. Open to respond: ${link}</div>
   <div class="msg"><div class="k">Email to ${esc(s.email)}</div><b>[Brand Hub] ${typeLabel(r.type,b)} ${r.id} · ${esc(b.name)}</b><br>Please acknowledge and ${r.type==='return'?'upload the return label and tracking number':r.type==='order'?'add tracking once shipped':'confirm the order has not shipped'}. ${link}</div>
@@ -1271,6 +1317,18 @@ const ACTIONS={
   },
   supaddrok:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.events.unshift({sys:false,t:'Supplier confirmed the new address',ago:0});alerts.filter(a=>a.ref===r.id&&a.template==='address'&&a.status==='open').forEach(a=>{a.status='acked';a.ackedAt=nowMs();a.reply='Confirmed the new address.'});render();toast('Thanks. The brand team can see you confirmed.')},
   supaddrno:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.addrConflict=true;r.events.unshift({sys:false,t:'Supplier says it already shipped to the old address',ago:0});sendAlert({dir:'in',supplier:r.supplier,ref:r.id,message:`${r.id} already shipped to the old address (${addrStr(r.addrOld)}). Please advise.`,channels:['portal'],by:SUPPLIERS[r.supplier].contact});render();toast('The ops team is alerted right now.')},
+  cmpost:e=>{
+    const ref=e.dataset.ref,role=e.dataset.role,ta=$('#cm-'+ref),text=ta.value.trim();
+    if(!text){toast('Write a message first');return}
+    const sup=role==='supplier',kind=sup?'shared':document.querySelector(`input[name="cmk-${ref}"]:checked`).value;
+    addComment({ref,kind,role,by:sup?SUPPLIERS[S.supplierId].contact:'You',text,readByOps:!sup,readBySupplier:sup});
+    const named=TEAM.filter(n=>text.includes('@'+n));
+    const msg=sup?'Sent to the brand team':kind==='shared'?'Shared. '+supName(supOfRef(ref))+' is notified on WhatsApp.':named.length?'Note saved. '+named.join(', ')+' notified in the hub and Slack.':'Internal note saved';
+    if(sup){S.openThreads[ref]=true;render()}else{render();(requests.some(r=>r.id===ref)?reqDrawer:poDrawer)(ref)}
+    toast(msg);
+  },
+  mention:e=>{const ta=$('#cm-'+e.dataset.ref),i=ta.selectionStart==null?ta.value.length:ta.selectionStart;ta.value=ta.value.slice(0,i)+'@'+e.dataset.n+' '+ta.value.slice(i);ta.focus()},
+  threadtoggle:e=>{const ref=e.dataset.ref;S.openThreads[ref]=!S.openThreads[ref];if(S.openThreads[ref])comments.forEach(c=>{if(c.ref===ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true});render()},
   suptab:e=>{S.supTab=e.dataset.t;render()},
   supconfirm:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),no=$('#so-'+po.id).value.trim(),d=$('#sd-'+po.id).value.split('-').map(Number);po.status='Confirmed';if(no)po.supplierRef=no;if(d.length===3&&!d.some(isNaN))po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,`Supplier confirmed${no?' (order '+no+')':''}, arrival ${fdate(po.eta)}`);render();toast('PO confirmed. The brand team is notified.')},
   supprod:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='In production';poEvent(po,'Supplier started production');render();toast('Marked in production')},
