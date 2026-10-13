@@ -364,7 +364,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={fresh:{},secs:{},bellOpen:false,bellTab:'all',me:'Lynn',readOps:{},readSup:{},openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={pbrand:0,ptab:'overview',readPar:{},fresh:{},secs:{},bellOpen:false,bellTab:'all',me:'Lynn',readOps:{},readSup:{},openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -412,13 +412,16 @@ const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14"
 const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents',alerts:'Ops team · Urgent alerts'};
 function renderTop(){
-  const ops=S.role==='ops';
-  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i><span><b>LAUNCH</b><small>VECTOR · BRAND HUB</small></span></div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
+  const role=S.role, ops=role==='ops', sup=role==='supplier', par=role==='partner';
+  const label=ops?esc(CRUMB[S.page]||''):sup?'Supplier portal':'Partner portal';
+  const picker=sup?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:par?`<select id="psel" aria-label="Viewing as brand partner">${[...brands].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}" ${S.pbrand===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:'';
+  const act=ops?`<button class="btn urgent" data-act="urgent">${ico('bolt')}Urgent</button>`:sup?`<button class="btn urgent" data-act="supurgent">${ico('bolt')}Contact brand team</button>`:'';
+  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i><span><b>LAUNCH</b><small>VECTOR · BRAND HUB</small></span></div><span class="small">${label}</span>
   <span class="spacer"></span>
-  ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
+  ${picker}
   ${bellHtml()}
-  ${ops?`<button class="btn urgent" data-act="urgent">${ico('bolt')}Urgent</button>`:`<button class="btn urgent" data-act="supurgent">${ico('bolt')}Contact brand team</button>`}
-  <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Team view</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
+  ${act}
+  <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Team view</button><button data-act="role" data-r="supplier" aria-pressed="${sup}">Supplier view</button><button data-act="role" data-r="partner" aria-pressed="${par}">Partner view</button></div>`;
 }
 function renderSide(){
   const el=$('#side'), ops=S.role==='ops';
@@ -426,14 +429,14 @@ function renderSide(){
   if(!ops)return;
   el.className='side'+(S.side?' collapsed':'')+(S.sideOpen?' open':'');
   const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length, lp=purchaseOrders.filter(poLate).length, op=payments.filter(p=>!p.paidOn&&payStatus(p)==='overdue').length;
-  const it=(p,l,i,badge,nw)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}${nw?' ('+nw+' unread supplier message'+(nw>1?'s':'')+')':''}" ${cur===p?'aria-current="page"':''}>${ico(i)}${nw?'<span class="pip"></span>':''}<span class="lbl">${l}</span>${nw?`<span class="newdot">● ${nw}</span>`:''}${badge?`<span class="tag">${badge}</span>`:''}</button>`;
+  const it=(p,l,i,badge,nw)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}${nw?' ('+nw+' unread message'+(nw>1?'s':'')+')':''}" ${cur===p?'aria-current="page"':''}>${ico(i)}${nw?'<span class="pip"></span>':''}<span class="lbl">${l}</span>${nw?`<span class="newdot">● ${nw}</span>`:''}${badge?`<span class="tag">${badge}</span>`:''}</button>`;
   const unRq=requests.reduce((a,r)=>a+unreadOps(r.id),0), unPo=purchaseOrders.reduce((a,po)=>a+unreadOps(po.id),0);
   el.innerHTML=`<div class="logo"><i></i><span class="lbl"><b>LAUNCH</b><small>VECTOR · BRAND HUB</small></span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
   ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro,unRq)}${it('pos','Purchase orders','doc',lp,unPo)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
   <div class="grp"><span class="lbl">Partner success</span></div>
-  ${it('psHome','PS overview','users')}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
+  ${it('psHome','PS overview','users',0,pmTotalTeam())}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
   <div class="side-foot"><button class="si" data-act="side" title="${S.side?'Expand':'Collapse'} sidebar">${ico(S.side?'right':'left')}<span class="lbl">Collapse</span></button></div>`;
 }
 
@@ -593,7 +596,7 @@ function psEdit(t){
   else if(f==='cemail'){b.contacts[ci].email=v;msg='Updated a partner email'}
   else if(f==='cactions'){b.contacts[ci].actions=v;msg='Updated open actions for '+b.contacts[ci].name}
   else if(f==='clast'){const p=v.split('-').map(Number);if(p.length!==3||p.some(isNaN))return;b.contacts[ci].last=new Date(p[0],p[1]-1,p[2]);msg='Logged contact with '+b.contacts[ci].name}
-  else if(f==='istatus'){b.issues[ii].status=v;msg='Set issue to '+v}
+  else if(f==='istatus'){b.issues[ii].status=v;b.issues[ii].updatedAt=Date.now();msg='Set issue to '+v}
   logAct(b,msg);render();toast(msg)
 }
 
@@ -616,9 +619,10 @@ function tabPS(b){
     ${b.contacts.length?b.contacts.map((c,i)=>`<div class="prow"><input type="text" ${P('cname',' data-ci="'+i+'"')} value="${esc(c.name)}" aria-label="Partner name"><input type="text" ${P('cemail',' data-ci="'+i+'"')} value="${esc(c.email)}" aria-label="Partner email"><input type="date" ${P('clast',' data-ci="'+i+'"')} value="${isoDate(c.last)}" aria-label="Last contacted"><input type="text" ${P('cactions',' data-ci="'+i+'"')} value="${esc(c.actions)}" placeholder="Open actions" aria-label="Open actions"><button class="btn sm" data-act="rmpartner" data-id="${b.id}" data-ci="${i}">Remove</button></div>`).join(''):'<p class="small">No partners on file yet.</p>'}
     <button class="btn primary" data-act="addpartner" data-id="${b.id}" style="margin-top:10px">+ Add partner</button></div>
   <div class="card"><h2>Issues</h2><p class="small" style="margin:2px 0 6px">${issueOpen(b)} open</p>
-    ${b.issues.length?b.issues.map((x,i)=>`<div class="irow"><select ${P('istatus',' data-ii="'+i+'"')} aria-label="Issue status"><option ${x.status==='Pending'?'selected':''}>Pending</option><option ${x.status==='In Progress'?'selected':''}>In Progress</option><option ${x.status==='Resolved'?'selected':''}>Resolved</option></select><div style="flex:1;min-width:150px">${esc(x.text)}<div class="small">${fdate(x.created)}</div></div><button class="btn sm" data-act="rmissue" data-id="${b.id}" data-ii="${i}">Remove</button></div>`).join(''):'<p class="small">No issues logged for this brand yet.</p>'}
+    ${b.issues.length?b.issues.map((x,i)=>`<div class="irow"><select ${P('istatus',' data-ii="'+i+'"')} aria-label="Issue status"><option ${x.status==='Pending'?'selected':''}>Pending</option><option ${x.status==='In Progress'?'selected':''}>In Progress</option><option ${x.status==='Resolved'?'selected':''}>Resolved</option></select><div style="flex:1;min-width:150px">${esc(x.text)}${x.by==='partner'?' <span class="tag">Reported by partner</span>':''}<div class="small">${fdate(x.created)}</div></div><button class="btn sm" data-act="rmissue" data-id="${b.id}" data-ii="${i}">Remove</button></div>`).join(''):'<p class="small">No issues logged for this brand yet.</p>'}
     <button class="btn primary" data-act="addissue" data-id="${b.id}" style="margin-top:10px">+ Add issue</button></div></div>
   <div class="grid" style="align-content:start">
+  ${pmTeamCard(b)}
   <div class="card"><h2>Ad ops</h2><div style="margin-top:12px">
     ${fld('gassignee','Google Ads assignee',sel('gassignee',b.google.owner,withCur(PEOPLE.google,b.google.owner),'Google Ads assignee'))}
     ${fld('gslack','Google Ads Slack channel',txt('gslack',b.gslack,'Google Ads Slack channel','https://…'),opn(b.gslack))}
@@ -674,7 +678,7 @@ function renderPsHome(){
    <div class="card"><h2>${hpill('yellow')}</h2><div style="margin-top:8px">${attn(st.yellow)}</div></div>
    <div class="card"><h2>Quick note</h2><p class="small" style="margin:2px 0 10px">Saves to the brand's manual notes and the activity log.</p>
     <div class="field"><label for="qnb">Brand</label><select id="qnb">${[...brands].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></div>
-    <div class="field"><label for="qnt">Note</label><textarea id="qnt" rows="3" placeholder="What did you discuss? What's next?"></textarea></div><button class="btn primary" data-act="quicknote">Save note</button></div></div>
+    <div class="field"><label for="qnt">Note</label><textarea id="qnt" rows="3" placeholder="What did you discuss? What's next?"></textarea></div><button class="btn primary" data-act="quicknote">Save note</button></div>${pmCard()}</div>
   <h2 style="margin:20px 0 10px">Next check-ins due</h2>
   <div class="tablewrap"><table><thead><tr><th>Next due</th><th>Cadence</th><th>Brand</th><th>Assignee</th><th class="num">Open issues</th></tr></thead><tbody>${due.map(x=>`<tr data-act="brand" data-id="${x.b.id}" tabindex="0"><td>${duePill(x.d)}</td><td>${esc(x.b.cadence)}</td><td class="name">${esc(x.b.name)}</td><td>${esc(x.b.owner)}</td><td class="num">${issueOpen(x.b)||'–'}</td></tr>`).join('')}</tbody></table></div>
   <p class="small" style="margin-top:8px"><button class="link" data-act="nav" data-p="tracker">See all in the Update tracker →</button></p>`;
@@ -1278,6 +1282,7 @@ function notifsOps(){
     if(a.dir==='out'&&a.status==='acked'&&a.reply)add('alert-ack:'+a.id,'reply',`${supName(a.supplier)} replied to ${a.id}`,a.reply,a.ackedAt,'openalert',{id:a.id});
     if(a.dir==='out'&&a.status==='open'&&!a.resolved&&mins(a)>=5)add('alert-no:'+a.id,'alert',`No reply from ${supName(a.supplier)} after ${Math.floor(mins(a))} min`,a.message,a.sentAt+5*6e4,'openalert',{id:a.id});
   });
+  pmsgs.forEach(m=>{if(m.from==='partner')add('pm:'+m.id,'message',`${m.by} (${brandById(m.brandId).name}): ${PM_KIND[m.kind].toLowerCase()}`,m.text,m.at,'openpartner',{id:m.brandId},m.readByTeam)});
   comments.forEach(c=>{
     if(c.role==='supplier')add('cm:'+c.id,'message',`${c.by} replied on ${c.ref}`,c.text,c.at,'openref',{ref:c.ref},c.readByOps);
     else if(c.kind==='internal'&&c.text.includes('@'+S.me))add('mention:'+c.id,'mention',`${c.by} mentioned you on ${c.ref}`,c.text,c.at,'openref',{ref:c.ref});
@@ -1307,7 +1312,8 @@ function notifsSup(sid){
   payments.forEach(p=>{if(p.supplier===sid&&p.paidOn&&p.paidOn>=addD(TODAY,-14))add('s-pay:'+p.id,'reply',`Payment of ${money0(p.amount)} was sent`,`${p.method} ${p.ref} · ${p.poId}`,+p.paidOn,'suptab',{t:'invoices'})});
   return L.sort((a,b)=>b.at-a.at);
 }
-const curNotifs=()=>S.role==='ops'?notifsOps():notifsSup(S.supplierId);
+const curNotifs=()=>S.role==='ops'?notifsOps():S.role==='partner'?notifsPar(S.pbrand):notifsSup(S.supplierId);
+const rmap=()=>S.role==='ops'?S.readOps:S.role==='partner'?S.readPar:S.readSup;
 function bellHtml(){
   const L=curNotifs(), un=L.filter(n=>!n.read).length, show=(S.bellTab==='unread'?L.filter(n=>!n.read):L).slice(0,40);
   return `<div class="bellwrap"><button class="iconbtn" data-act="bell" aria-label="Notifications, ${un} unread" aria-expanded="${S.bellOpen}">${ico('bell')}${un?`<span class="badge">${un>99?'99+':un}</span>`:''}</button>${S.bellOpen?`<div class="bellpanel" role="dialog" aria-label="Notifications"><div class="bph"><b>Notifications</b>${S.role==='ops'?`<label class="small" style="margin-left:auto">For <select id="bme" aria-label="Show mentions for">${TEAM.map(n=>`<option ${n===S.me?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`:'<span style="margin-left:auto"></span>'}<button class="link" data-act="bellall">Mark all read</button></div><div class="row" style="gap:6px;padding:8px 12px"><button class="chip" data-act="belltab" data-k="all" aria-pressed="${S.bellTab!=='unread'}">All · ${L.length}</button><button class="chip" data-act="belltab" data-k="unread" aria-pressed="${S.bellTab==='unread'}">Unread · ${un}</button></div><div class="bpl">${show.length?show.map(n=>`<button class="bitem ${n.read?'':'unread'}" data-act="bellgo" data-id="${esc(n.id)}"><span class="bdot ${BELL_KIND[n.kind]||'info'}"></span><span style="min-width:0"><b>${esc(n.title)}</b><span class="small bl">${esc(n.text.slice(0,110))}</span><span class="small bl">${ago((Date.now()-n.at)/36e5)}</span></span></button>`).join(''):'<div class="empty">Nothing to show.</div>'}</div></div>`:''}</div>`;
@@ -1323,6 +1329,133 @@ function bellGo(n){
   else if(n.act==='suptab'){S.supTab=d.t;render();window.scrollTo(0,0)}
   else if(n.act==='supthread'){S.supTab=requests.some(r=>r.id===d.ref)?'requests':'pos';S.openThreads[d.ref]=true;comments.forEach(c=>{if(c.ref===d.ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true});render();const el=[...document.querySelectorAll('.card.req')].find(x=>x.textContent.includes(d.ref));if(el)el.scrollIntoView({block:'center'})}
   else if(n.act==='top'){render();window.scrollTo(0,0)}
+  else if(n.act==='ptab'){S.ptab=d.t;render();window.scrollTo(0,0)}
+  else if(n.act==='openpartner'){S.brandId=d.id;S.page='brand';S.tab='ps';render();window.scrollTo(0,0)}
+}
+
+/* ---------- brand partner portal ---------- */
+const pmsgs=[]; let pmSeq=0;
+function addPm(o){const m=Object.assign({id:'PM'+(++pmSeq),brandId:0,from:'partner',kind:'message',by:'',text:'',at:Date.now(),readByTeam:false,readByPartner:false},o);pmsgs.push(m);return m}
+const pmFor=bid=>pmsgs.filter(m=>m.brandId===bid).sort((a,b)=>a.at-b.at);
+const pmUnreadTeam=bid=>pmsgs.filter(m=>m.brandId===bid&&m.from==='partner'&&!m.readByTeam).length;
+const pmUnreadPartner=bid=>pmsgs.filter(m=>m.brandId===bid&&m.from==='team'&&!m.readByPartner).length;
+const pmTotalTeam=()=>pmsgs.filter(m=>m.from==='partner'&&!m.readByTeam).length;
+const PM_KIND={message:'Message',question:'Question',issue:'Issue reported',restock:'Restock request',call:'Call request'};
+const pName=b=>b.contacts[0]?b.contacts[0].name:'there';
+const pFirst=b=>pName(b).split(' ')[0];
+const REQ_FRIENDLY={notified:'With our supplier',ack:'In progress',done:'Completed',declined:'Needs attention'};
+const PO_FRIENDLY={Sent:'Ordered','Confirmed':'Confirmed','In production':'Being made',Shipped:'On the way',Received:'Received'};
+const PO_ICON={Sent:['idle','○'],Confirmed:['info','✓'],'In production':['info','◐'],Shipped:['info','→'],Received:['good','✓']};
+const partnerTeam=b=>[['Partner success',b.owner],['Meta Ads',b.meta.owner],['Google Ads',b.google.owner],['Email',b.email.owner],['Creative director',b.creative],['UGC manager',b.ugc]].filter(x=>x[1]);
+(function(){
+  const U=['Q3 numbers look strong. Meta ROAS is up and returns are steady. We are lining up a restock before the holiday rush.','Quiet week. Two new SKUs are being sampled and we will review creative on Thursday.','We fixed the checkout pixel issue. Tracking is back to normal and we are watching conversion closely.','Supplier lead times are a little longer this month. We have moved your reorder date up to stay in stock.','Great month for email. The new welcome flow is converting well, and we plan to test a second one.'];
+  brands.forEach((b,i)=>{b.update={text:U[(i*3+1)%U.length],at:T0-((i%9)+1)*864e5,by:b.owner}});
+  const d=brands[0];
+  addPm({brandId:d.id,from:'team',by:d.owner,kind:'message',text:'Welcome to your partner portal. You can see sales, stock, ads and open issues here, and message us anytime.',at:Date.now()-6*864e5,readByTeam:true,readByPartner:true});
+  addPm({brandId:d.id,from:'partner',by:pName(d),kind:'question',text:'Can we move the next stock order up? The two best sellers are running low.',at:Date.now()-26*36e5,readByTeam:true,readByPartner:true});
+  addPm({brandId:d.id,from:'team',by:d.owner,kind:'message',text:'Yes. I have asked the supplier to confirm an earlier ship date and will update you tomorrow.',at:Date.now()-20*36e5,readByTeam:true,readByPartner:false});
+  [2,3,5].forEach((k,j)=>{const b=brands[k];addPm({brandId:b.id,from:'partner',by:pName(b),kind:j===0?'issue':j===1?'restock':'call',text:j===0?'Our product page shows the wrong shipping time at checkout.':j===1?'We would like to restock about 200 units of our best seller.':'Can we get a call this week about Q4 planning? Tuesday or Thursday afternoon works.',at:Date.now()-(j+1)*5*36e5})});
+})();
+
+/* team side: update for the partner and the message thread */
+function pmTeamCard(b){
+  const fresh=pmsgs.filter(m=>m.brandId===b.id&&m.from==='partner'&&!m.readByTeam).map(m=>m.id);
+  if(fresh.length){pmsgs.forEach(m=>{if(m.brandId===b.id&&m.from==='partner')m.readByTeam=true});S.dirtyRead=true;renderSide()}
+  const th=pmFor(b.id);
+  return `<div class="card"><h2>Partner portal</h2><p class="small" style="margin:2px 0 10px">What ${esc(pName(b))} sees at their link. Updates and replies here show up in their portal and bell.</p>
+  <div class="field"><label for="pu-${b.id}">Update for the partner</label><textarea id="pu-${b.id}" rows="3" placeholder="A short summary of how the brand is doing…">${esc(b.update?b.update.text:'')}</textarea></div>
+  <div class="row" style="margin-bottom:14px"><button class="btn primary sm" data-act="pupdate" data-id="${b.id}">Publish update</button><span class="small">${b.update?'Last published '+ago((Date.now()-b.update.at)/36e5):'Nothing published yet'}</span></div>
+  <h3 style="margin:0 0 8px">Messages ${fresh.length?`<span class="newdot">● ${fresh.length} new</span>`:''}</h3>
+  ${th.length?`<div class="thread">${th.map(m=>`<div class="cmsg ${fresh.includes(m.id)?'fresh':''}"><div class="meta"><b style="color:var(--ink)">${esc(m.by)}</b><span class="tag">${m.from==='partner'?'Partner':'Team'}</span>${m.kind!=='message'?`<span class="tag">${PM_KIND[m.kind]}</span>`:''}${fresh.includes(m.id)?'<span class="newdot">New</span>':''}<span>${ago((Date.now()-m.at)/36e5)}</span></div><div>${esc(m.text)}</div></div>`).join('')}</div>`:'<p class="small">No messages yet.</p>'}
+  <div class="field" style="margin:8px 0"><label for="pr-${b.id}">Reply to ${esc(pFirst(b))}</label><textarea id="pr-${b.id}" rows="2" placeholder="Write a reply…"></textarea></div><button class="btn primary sm" data-act="pmpost" data-id="${b.id}" data-role="team">Send reply</button></div>`;
+}
+function pmCard(){
+  const ids=[...new Set(pmsgs.filter(m=>m.from==='partner'&&!m.readByTeam).map(m=>m.brandId))];
+  return `<div class="card"><h2>New partner messages</h2>${ids.length?`<div class="list" style="margin-top:6px">${ids.map(id=>{const b=brandById(id),l=pmsgs.filter(m=>m.brandId===id&&m.from==='partner'&&!m.readByTeam).sort((a,c)=>c.at-a.at)[0];return `<div><span><button class="link" data-act="openpartner" data-id="${id}">${esc(b.name)}</button> <span class="small">${esc(l.by)} · ${PM_KIND[l.kind]} · ${ago((Date.now()-l.at)/36e5)}<br>${esc(l.text.slice(0,90))}${l.text.length>90?'…':''}</span></span><button class="btn sm" data-act="openpartner" data-id="${id}">Reply</button></div>`}).join('')}</div>`:'<p class="small">No new messages from partners.</p>'}</div>`;
+}
+
+/* partner views */
+function renderPartner(){
+  const b=brandById(S.pbrand), tab=S.ptab, un=pmUnreadPartner(b.id);
+  const T=(k,l,n)=>`<button role="tab" data-act="ptab" data-t="${k}" aria-selected="${tab===k}">${l}${n?`<span class="newdot">● ${n}</span>`:''}</button>`;
+  const body=({overview:pOverview,orders:pOrders,stock:pStock,marketing:pMarketing,updates:pUpdates,messages:pMessages})[tab](b);
+  return `<div class="head"><div><h1>Hi, ${esc(pFirst(b))}</h1><p class="sub">${esc(b.name)} · your LaunchVector partner portal</p></div><button class="btn primary" data-act="pask">Ask our team</button></div>
+  <div class="supbanner"><b>Opened from your email link.</b> No password needed. You only see ${esc(b.name)}.</div>
+  <div class="tabs" role="tablist">${T('overview','Overview')}${T('orders','Orders & returns')}${T('stock','Stock')}${T('marketing','Marketing')}${T('updates','Updates & issues',issueOpen(b))}${T('messages','Messages',un)}</div>${body}`;
+}
+function pOverview(b){
+  const oi=issueOpen(b), reasons=[];
+  if(b.accountDown)reasons.push('Your account is down. Our team is working on it.');if(!b.googleOn)reasons.push('Google Ads is paused.');if(!b.metaOn)reasons.push('Meta Ads is paused.');if(oi)reasons.push(`${oi} open issue${oi>1?'s':''} we are working on.`);
+  const roas=(b.meta.rev+b.google.rev)/(b.meta.spend+b.google.spend), due=dueOf(b), low=b.skus.filter(s=>stockState(s)[0]!=='good');
+  const msg={green:'Everything looks healthy.',yellow:'A few things need attention.',red:'Your account needs urgent attention.'}[b.health];
+  return `<div class="card" style="margin-bottom:12px"><div class="row" style="gap:12px">${hpill(b.health)}<b>${msg}</b></div>${reasons.length?`<ul style="margin:8px 0 0;padding-left:18px">${reasons.map(r=>`<li>${r}</li>`).join('')}</ul>`:''}</div>
+  <div class="grid kpis"><div class="card kpi"><h3>Revenue (30 days)</h3><div class="v">${money(b.revenue)}</div><div class="d">${dpct(b.delta)} vs previous 30 days</div></div>
+  <div class="card kpi"><h3>Orders</h3><div class="v">${b.orders.toLocaleString()}</div><div class="d">Average order ${money0(b.aov)}</div></div>
+  <div class="card kpi"><h3>Gross margin</h3><div class="v">${pct(b.gm,0)}</div><div class="d">Gross profit ${money(b.gp)}</div></div>
+  <div class="card kpi"><h3>Return rate</h3><div class="v">${pct(b.returnRate)}</div><div class="d">${b.returnRate>.075?'Above our 7.5% target':'Within our 7.5% target'}</div></div>
+  <div class="card kpi"><h3>Ad return (ROAS)</h3><div class="v">${roas.toFixed(1)}x</div><div class="d">Meta + Google</div></div></div>
+  <div class="grid two" style="margin-bottom:12px"><div class="card"><h2>Revenue per day</h2><p class="small" style="margin:2px 0 10px">Hover a bar for the day.</p>${barChart(b.series,money,dayLabel)}</div>
+  <div class="grid" style="align-content:start"><div class="card"><h2>Your next update</h2><p style="margin:8px 0 4px"><b>${due?fdateY(due):'Not scheduled'}</b> ${due?`<span class="small">(${rel(due)})</span>`:''}</p><p class="small" style="margin:0 0 10px">${esc(b.cadence)} with ${esc(b.owner)}${lastContact(b)?' · last spoke '+fdate(lastContact(b)):''}</p><button class="btn sm" data-act="pask" data-k="call">Request a call</button></div>
+  <div class="card"><h2>Latest from ${esc(b.owner)}</h2>${b.update?`<p style="margin:8px 0 4px">${esc(b.update.text)}</p><p class="small" style="margin:0">${fdate(new Date(b.update.at))}</p>`:'<p class="small">No update yet.</p>'}</div></div></div>
+  <div class="cols2"><div class="card"><div class="row" style="justify-content:space-between"><h2>Stock to watch</h2><button class="link" data-act="ptab" data-t="stock">See all stock →</button></div>${low.length?`<div class="list" style="margin-top:6px">${low.slice(0,5).map(s=>{const x=stockState(s);return `<div><span>${esc(s.name)}<div class="small mono">${s.sku}</div></span><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></div>`}).join('')}</div>`:'<p class="small">All products have healthy stock.</p>'}</div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2>Open issues</h2><button class="link" data-act="ptab" data-t="updates">See all →</button></div>${oi?`<div class="list" style="margin-top:6px">${b.issues.filter(i=>i.status!=='Resolved').map(i=>`<div><span>${esc(i.text)}<div class="small">${fdate(i.created)}</div></span><span class="pill ${i.status==='Pending'?'idle':'info'}"><b>${i.status==='Pending'?'○':'◐'}</b>${i.status}</span></div>`).join('')}</div>`:'<p class="small">Nothing open. Nice.</p>'}</div></div>`;
+}
+function pOrders(b){
+  const st={Fulfilled:'info',Delivered:'good','In transit':'info','Awaiting supplier':'idle',Returned:'warn',Cancelled:'crit'}, ic={good:'✓',info:'→',idle:'○',warn:'↩',crit:'✕'};
+  const rq=requests.filter(r=>r.brandId===b.id).sort((a,c)=>a.hoursAgo-c.hoursAgo);
+  return `<h2 style="margin:0 0 10px">Recent orders</h2><div class="tablewrap"><table><thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th>Status</th><th>Placed</th></tr></thead><tbody>${b.orderRows.map(o=>`<tr><td class="mono">#${o.no}</td><td>${esc(o.cust)}</td><td class="num">${money0(o.total)}</td><td><span class="pill ${st[o.status]}"><b>${ic[st[o.status]]}</b>${o.status==='Awaiting supplier'?'Being prepared':o.status}</span></td><td class="small" data-v="${o.days}">${o.days===0?'Today':o.days+' days ago'}</td></tr>`).join('')}</tbody></table></div>
+  <h2 style="margin:22px 0 10px">Returns, cancellations and changes</h2><div class="tablewrap"><table><thead><tr><th>Request</th><th>Type</th><th>Order</th><th>Status</th><th>Requested</th><th>Tracking</th></tr></thead><tbody>${rq.map(r=>{const done=r.status==='done',x=r.status==='declined'?['crit','!']:done?['good','✓']:r.status==='ack'?['info','◐']:['idle','○'];return `<tr><td class="mono">${r.id}</td><td>${typeLabel(r.type,b)}</td><td class="mono">#${r.orderNo}</td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${REQ_FRIENDLY[r.status]}</span></td><td class="small" data-v="${r.hoursAgo}">${ago(r.hoursAgo)}</td><td class="mono">${r.tracking?esc(r.carrier)+' '+esc(r.tracking):'<span class="small">–</span>'}</td></tr>`}).join('')}</tbody></table>${rq.length?'':'<div class="empty">No returns or changes.</div>'}</div>`;
+}
+function pStock(b){
+  const out=b.skus.filter(s=>s.onHand===0).length, low=b.skus.filter(s=>stockState(s)[0]==='warn').length;
+  const pos=purchaseOrders.filter(p=>p.brandId===b.id&&!['Draft','Cancelled'].includes(p.status)).sort((a,c)=>a.eta-c.eta);
+  return `<div class="grid kpis"><div class="card kpi"><h3>Products</h3><div class="v">${b.skus.length}</div></div><div class="card kpi"><h3>Out of stock</h3><div class="v ${out?'down':''}">${out}</div></div><div class="card kpi"><h3>Running low</h3><div class="v">${low}</div><div class="d">under 10 days of cover</div></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Product</th><th>SKU</th><th class="num">In stock</th><th class="num">Arriving</th><th class="num">Sells/day</th><th>Days of cover</th><th>Status</th><th></th></tr></thead><tbody>${b.skus.map(s=>{const x=stockState(s),c=stockCover(s);return `<tr><td class="name">${esc(s.name)}</td><td class="mono">${s.sku}</td><td class="num">${s.onHand}</td><td class="num">${s.incoming||'–'}</td><td class="num">${fmtVel(s.vel)}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${Math.min(100,c/30*100)}%"></span></div><span class="small" style="min-width:34px">${c>=99?'–':Math.round(c)+' d'}</span></div></td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span></td><td style="text-align:right">${x[0]!=='good'?`<button class="btn sm" data-act="pask" data-k="restock" data-sku="${s.sku}">Request restock</button>`:''}</td></tr>`}).join('')}</tbody></table></div>
+  <h2 style="margin:22px 0 10px">Stock on the way</h2><div class="tablewrap"><table><thead><tr><th>Order</th><th>Items</th><th class="num">Units</th><th>Status</th><th>Expected</th></tr></thead><tbody>${pos.map(po=>{const x=PO_ICON[po.status];return `<tr><td class="mono">${po.id}</td><td style="white-space:normal;min-width:200px">${po.lines.map(l=>esc(l.name)).join(', ')}</td><td class="num">${poUnits(po).toLocaleString()}</td><td><span class="pill ${x[0]}"><b>${x[1]}</b>${PO_FRIENDLY[po.status]}</span></td><td data-v="${+po.eta}">${po.status==='Received'?'Received '+fdate(po.receivedOn||po.eta):fdate(po.eta)}${po.status!=='Received'?`<div class="small ${poLate(po)?'down':''}">${poLate(po)?'! Running late · ':''}${rel(po.eta)}</div>`:''}</td></tr>`}).join('')}</tbody></table>${pos.length?'':'<div class="empty">No stock orders in progress.</div>'}</div>`;
+}
+function pMarketing(b){
+  const m=b.meta,g=b.google,e=b.email, spend=m.spend+g.spend, rev=m.rev+g.rev;
+  const row=(n,sp,rv,ow,note)=>`<tr><td class="name">${n}</td><td class="num">${sp?money(sp):'–'}</td><td class="num">${money(rv)}</td><td class="num">${sp?(rv/sp).toFixed(1)+'x':'–'}</td><td>${esc(ow)}</td><td class="small">${note}</td></tr>`;
+  return `<div class="grid kpis"><div class="card kpi"><h3>Ad spend (30 days)</h3><div class="v">${money(spend)}</div><div class="d">Meta + Google</div></div><div class="card kpi"><h3>Ad revenue</h3><div class="v">${money(rev)}</div><div class="d">ROAS ${(rev/spend).toFixed(1)}x</div></div><div class="card kpi"><h3>Email revenue</h3><div class="v">${money(e.rev)}</div><div class="d">${e.sends} emails sent</div></div><div class="card kpi"><h3>Overall return</h3><div class="v">${((rev+e.rev)/spend).toFixed(1)}x</div><div class="d">All channels ÷ ad spend</div></div></div>
+  <div class="tablewrap" style="margin-bottom:12px"><table><thead><tr><th>Channel</th><th class="num">Spend</th><th class="num">Revenue</th><th class="num">ROAS</th><th>Your contact</th><th>Status</th></tr></thead><tbody>${row('Meta',m.spend,m.rev,m.owner,b.metaOn?'Running':'<span class="down">Paused</span>')}${row('Google',g.spend,g.rev,g.owner,b.googleOn?'Running':'<span class="down">Paused</span>')}${row('Email',0,e.rev,e.owner,'List of '+e.list.toLocaleString())}</tbody></table></div>
+  <div class="card"><h2>Your team</h2><div class="list" style="margin-top:6px">${partnerTeam(b).map(x=>`<div><span class="small">${x[0]}</span><b>${esc(x[1])}</b></div>`).join('')}</div><button class="btn sm" data-act="pask" style="margin-top:12px">Ask our team a question</button></div>`;
+}
+function pUpdates(b){
+  const due=dueOf(b), open=b.issues.filter(i=>i.status!=='Resolved'), done=b.issues.filter(i=>i.status==='Resolved');
+  const row=i=>`<tr><td><span class="pill ${i.status==='Resolved'?'good':i.status==='Pending'?'idle':'info'}"><b>${i.status==='Resolved'?'✓':i.status==='Pending'?'○':'◐'}</b>${i.status}</span></td><td style="white-space:normal;min-width:220px">${esc(i.text)}${i.by==='partner'?' <span class="tag">Reported by you</span>':''}</td><td class="small" data-v="${+i.created}">${fdate(i.created)}</td></tr>`;
+  return `<div class="cols2" style="margin-bottom:16px"><div class="card"><h2>Check-in schedule</h2><dl style="margin-top:10px"><dt>How often</dt><dd>${esc(b.cadence)}</dd><dt>With</dt><dd>${esc(b.owner)}</dd><dt>Last spoke</dt><dd>${lastContact(b)?fdateY(lastContact(b)):'–'}</dd><dt>Next update</dt><dd>${due?fdateY(due)+' <span class="small">('+rel(due)+')</span>':'Not scheduled'}</dd></dl><button class="btn sm" data-act="pask" data-k="call" style="margin-top:12px">Request a call</button></div>
+  <div class="card"><h2>Latest update</h2>${b.update?`<p style="margin:8px 0 4px">${esc(b.update.text)}</p><p class="small" style="margin:0">${esc(b.update.by)} · ${fdate(new Date(b.update.at))}</p>`:'<p class="small">No update yet.</p>'}</div></div>
+  <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Issues</h2><button class="btn primary sm" data-act="pask" data-k="issue">Report an issue</button></div>
+  <div class="tablewrap"><table><thead><tr><th>Status</th><th>Issue</th><th>Reported</th></tr></thead><tbody>${[...open,...done].map(row).join('')}</tbody></table>${b.issues.length?'':'<div class="empty">No issues. If something looks wrong, report it above.</div>'}</div>`;
+}
+function pMessages(b){
+  const th=pmFor(b.id), fresh=th.filter(m=>m.from==='team'&&!m.readByPartner).map(m=>m.id);
+  pmsgs.forEach(m=>{if(m.brandId===b.id&&m.from==='team'&&!m.readByPartner){m.readByPartner=true;S.dirtyRead=true}});
+  return `<div class="card">${th.length?`<div class="thread">${th.map(m=>`<div class="cmsg ${fresh.includes(m.id)?'fresh':''}" style="${m.from==='partner'?'margin-left:36px':'margin-right:36px'}"><div class="meta"><b style="color:var(--ink)">${m.from==='partner'?'You':esc(m.by)}</b>${m.from==='team'?'<span class="tag">LaunchVector</span>':''}${m.kind!=='message'?`<span class="tag">${PM_KIND[m.kind]}</span>`:''}${fresh.includes(m.id)?'<span class="newdot">New</span>':''}<span>${ago((Date.now()-m.at)/36e5)}</span></div><div>${esc(m.text)}</div></div>`).join('')}</div>`:'<p class="small">No messages yet. Say hello.</p>'}
+  <div class="field" style="margin:8px 0"><label for="pm-text">Message ${esc(b.owner)} and the team</label><textarea id="pm-text" rows="3" placeholder="Write a message…"></textarea></div><div class="row"><button class="btn primary" data-act="pmpost" data-id="${b.id}" data-role="partner">Send</button><button class="btn" data-act="pask" data-k="call">Request a call</button><button class="btn" data-act="pask" data-k="issue">Report an issue</button></div></div>`;
+}
+function askModal(k,sku){
+  const b=brandById(S.pbrand), kind=k||'question';
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Ask our team"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Ask our team</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div class="field"><label for="pk">What do you need?</label><select id="pk"><option value="question" ${kind==='question'?'selected':''}>Ask a question</option><option value="issue" ${kind==='issue'?'selected':''}>Report an issue</option><option value="restock" ${kind==='restock'?'selected':''}>Request a restock</option><option value="call" ${kind==='call'?'selected':''}>Request a call</option></select></div>
+  <div class="field" id="pskuf"><label for="psku">Product</label><select id="psku">${b.skus.map(s=>`<option value="${s.sku}" ${s.sku===sku?'selected':''}>${esc(s.name)} (${s.sku})</option>`).join('')}</select></div>
+  <div class="field" id="pwf"><label for="pw">Best times</label><input type="text" id="pw" placeholder="For example: Tuesday or Thursday afternoon"></div>
+  <div class="field"><label for="pt" id="ptl">Details</label><textarea id="pt" rows="4"></textarea></div>
+  <div id="perr" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="pasksend" style="width:100%">Send to the team</button></div></div>`;
+  fillAsk();
+}
+function fillAsk(){
+  const k=$('#pk').value;$('#pskuf').style.display=k==='restock'?'':'none';$('#pwf').style.display=k==='call'?'':'none';
+  $('#ptl').textContent={question:'Your question',issue:'What is wrong?',restock:'How many units, and when do you need them?',call:'What would you like to talk about?'}[k];
+}
+function notifsPar(bid){
+  const b=brandById(bid), L=[], add=(id,kind,title,text,at,act,data,read)=>L.push({id,kind,title,text:text||'',at,act,data,read:!!read||!!S.readPar[id]});
+  pmsgs.forEach(m=>{if(m.brandId===bid&&m.from==='team')add('p-msg:'+m.id,'message',`${m.by} sent you a message`,m.text,m.at,'ptab',{t:'messages'},m.readByPartner)});
+  if(b.update)add('p-upd:'+b.update.at,'reply',`New update from ${b.update.by}`,b.update.text,b.update.at,'ptab',{t:'overview'});
+  b.issues.forEach((i,k)=>{if(i.updatedAt&&i.by!=='partner'||i.updatedAt)add('p-iss:'+k+':'+i.status,i.status==='Resolved'?'reply':'request',`Issue ${i.status.toLowerCase()}`,i.text,i.updatedAt,'ptab',{t:'updates'})});
+  purchaseOrders.forEach(po=>{if(po.brandId===bid&&(po.status==='Shipped'||(po.status==='Received'&&po.receivedOn&&po.receivedOn>=addD(TODAY,-30))))add('p-po:'+po.id+po.status,'po',`Stock order ${po.id} is ${PO_FRIENDLY[po.status].toLowerCase()}`,`${poUnits(po).toLocaleString()} units · ${po.status==='Received'?'received '+fdate(po.receivedOn||po.eta):'expected '+fdate(po.eta)}`,T0-(po.events[0]?po.events[0].ago:24)*36e5,'ptab',{t:'stock'})});
+  const out=b.skus.filter(s=>s.onHand===0).length;if(out)add('p-oos:'+out,'alert',`${out} product${out>1?'s are':' is'} out of stock`,'Open Stock to request a restock',T0,'ptab',{t:'stock'});
+  return L.sort((a,c)=>c.at-a.at);
 }
 
 /* ---------- ops requests & inventory ---------- */
@@ -1538,8 +1671,8 @@ const ACTIONS={
   threadtoggle:e=>{const ref=e.dataset.ref;S.openThreads[ref]=!S.openThreads[ref];if(S.openThreads[ref]){S.fresh[ref]=comments.filter(c=>c.ref===ref&&c.kind==='shared'&&c.role!=='supplier'&&!c.readBySupplier).map(c=>c.id);comments.forEach(c=>{if(c.ref===ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true})}else delete S.fresh[ref];render()},
   bell:()=>{S.bellOpen=!S.bellOpen;renderTop()},
   belltab:e=>{S.bellTab=e.dataset.k;renderTop()},
-  bellall:()=>{curNotifs().forEach(n=>{(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;if(n.id.startsWith('cm:'))comments.forEach(c=>{if('cm:'+c.id===n.id)c.readByOps=true});if(n.id.startsWith('s-cm:'))comments.forEach(c=>{if('s-cm:'+c.id===n.id)c.readBySupplier=true})});renderTop()},
-  bellgo:e=>{const n=curNotifs().find(x=>x.id===e.dataset.id);if(!n)return;(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;S.bellOpen=false;renderTop();bellGo(n)},
+  bellall:()=>{curNotifs().forEach(n=>{rmap()[n.id]=true;if(n.id.startsWith('cm:'))comments.forEach(c=>{if('cm:'+c.id===n.id)c.readByOps=true});if(n.id.startsWith('s-cm:'))comments.forEach(c=>{if('s-cm:'+c.id===n.id)c.readBySupplier=true});if(n.id.startsWith('p-msg:'))pmsgs.forEach(m=>{if('p-msg:'+m.id===n.id)m.readByPartner=true});if(n.id.startsWith('pm:'))pmsgs.forEach(m=>{if('pm:'+m.id===n.id)m.readByTeam=true})});renderTop()},
+  bellgo:e=>{const n=curNotifs().find(x=>x.id===e.dataset.id);if(!n)return;rmap()[n.id]=true;S.bellOpen=false;renderTop();bellGo(n)},
   supchgok:e=>{
     const c=requests.find(x=>x.id===e.dataset.id);c.status='done';c.events.unshift({t:'Supplier confirmed the new address',ago:0});
     const p=requests.find(x=>x.id===c.parent);if(p){p.addr=c.addr;p.addrPending=false;p.addrConflict=false;p.events.unshift({t:`Shipping address updated through ${c.id}`,ago:0})}
@@ -1552,6 +1685,25 @@ const ACTIONS={
     sendAlert({dir:'in',supplier:c.supplier,ref:c.id,message:`${c.id}: ${p?p.id:'order #'+c.orderNo} already shipped to the old address. Please advise.`,channels:['portal'],by:SUPPLIERS[c.supplier].contact});
     render();toast('The ops team is alerted right now.');
   },
+  ptab:e=>{S.ptab=e.dataset.t;render();window.scrollTo(0,0)},
+  pask:e=>askModal(e.dataset.k,e.dataset.sku),
+  pasksend:()=>{
+    const b=brandById(S.pbrand),k=$('#pk').value,t=$('#pt').value.trim();
+    if(!t){$('#perr').textContent='Add a few details so we can help.';return}
+    let text=t;if(k==='restock')text=`Restock ${$('#psku').value}: ${t}`;if(k==='call'&&$('#pw').value.trim())text=`${t} Best times: ${$('#pw').value.trim()}.`;
+    addPm({brandId:b.id,from:'partner',kind:k,by:pName(b),text,readByPartner:true});
+    if(k==='issue'){b.issues.unshift({text:t,status:'Pending',created:new Date(TODAY),by:'partner',updatedAt:Date.now()})}
+    logAct(b,'Partner: '+PM_KIND[k].toLowerCase());
+    S.ptab=k==='issue'?'updates':'messages';render();toast('Sent. '+b.owner+' and the team will reply soon.');
+  },
+  pmpost:e=>{
+    const id=+e.dataset.id,role=e.dataset.role,b=brandById(id),ta=$(role==='partner'?'#pm-text':'#pr-'+id),t=ta.value.trim();
+    if(!t){toast('Write a message first');return}
+    if(role==='partner'){addPm({brandId:id,from:'partner',kind:'message',by:pName(b),text:t,readByPartner:true});render();toast('Sent to the team')}
+    else{addPm({brandId:id,from:'team',kind:'message',by:b.owner,text:t,readByTeam:true});logAct(b,'Replied to the partner');render();toast(pFirst(b)+' will see this in their portal and bell')}
+  },
+  pupdate:e=>{const b=brandById(+e.dataset.id),t=$('#pu-'+b.id).value.trim();if(!t){toast('Write the update first');return}b.update={text:t,at:Date.now(),by:b.owner};logAct(b,'Published an update for the partner');render();toast('Published to '+pFirst(b)+"'s portal")},
+  openpartner:e=>{S.brandId=+e.dataset.id;S.page='brand';S.tab='ps';S.sideOpen=false;render();window.scrollTo(0,0)},
   suptab:e=>{S.supTab=e.dataset.t;render()},
   supconfirm:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),no=$('#so-'+po.id).value.trim(),d=$('#sd-'+po.id).value.split('-').map(Number);po.status='Confirmed';if(no)po.supplierRef=no;if(d.length===3&&!d.some(isNaN))po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,`Supplier confirmed${no?' (order '+no+')':''}, arrival ${fdate(po.eta)}`);render();toast('PO confirmed. The brand team is notified.')},
   supprod:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='In production';poEvent(po,'Supplier started production');render();toast('Marked in production')},
@@ -1622,6 +1774,8 @@ document.addEventListener('change',ev=>{
     if(f!=='cost'&&s.cost==null){toast('Add a unit cost first')}
     recalc(b);render();toast(s.cost==null?'Unit cost cleared':'Cost updated. COGS recalculated.');return}
   if(t.id==='supsel'){S.supplierId=+t.value;render()}
+  else if(t.id==='psel'){S.pbrand=+t.value;S.ptab='overview';render()}
+  else if(t.id==='pk')fillAsk();
   else if(t.id==='fmode'){S.mode=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
   else if(t.id==='fsup'){S.supplier=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
   else if(t.id==='fhealth'){S.health=t.value;S.show=20;$('#tbl').innerHTML=brandTable()}
@@ -1663,7 +1817,8 @@ document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.
 function render(){
   renderTop();renderSide();
   const PAGES={alerts:renderAlerts,docs:renderDocs,pos:renderPOs,payments:renderPayments,brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
-  $('#app').innerHTML=(S.role==='ops'&&S.page!=='alerts'?urgentBanner():'')+(S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)());
+  $('#app').innerHTML=(S.role==='ops'&&S.page!=='alerts'?urgentBanner():'')+(S.role==='supplier'?renderSupplier():S.role==='partner'?renderPartner():(PAGES[S.page]||renderPortfolio)());
+  if(S.dirtyRead&&S.role==='partner'){S.dirtyRead=false;renderTop()}
   $('#layer').innerHTML='';
   enhanceTables($('#app'),'A');
 }
