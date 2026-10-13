@@ -128,7 +128,7 @@ dt{color:var(--muted)} dd{margin:0;min-width:0;overflow-wrap:anywhere}
 
 .shell{display:flex;min-height:100vh}
 .main{flex:1;min-width:0}
-.side{width:244px;flex:none;position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;transition:width .15s}
+.side{width:264px;flex:none;position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto;transition:width .15s}
 .side[hidden]{display:none}
 .side .logo{padding:6px 8px 14px;margin:0}
 .side .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:16px 10px 6px}
@@ -188,6 +188,17 @@ details.sec>summary:focus-visible{outline:2px solid var(--accent);outline-offset
 .bdot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--accent));margin-top:6px;flex:none}
 .bitem:not(.unread) .bdot{opacity:.35}
 @media (max-width:600px){.bellpanel{position:fixed;left:12px;right:12px;top:60px;width:auto}}
+.newdot{display:inline-flex;align-items:center;gap:3px;background:var(--accent);color:var(--on-accent);border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:700;line-height:18px;margin-left:4px;white-space:nowrap}
+.si{position:relative}
+.si .lbl{white-space:nowrap}
+.si .newdot{margin-left:auto}
+.si .newdot+.tag{margin-left:6px}
+.pip{display:none;position:absolute;top:6px;left:26px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.side.collapsed .newdot{display:none}
+.side.collapsed .pip{display:block}
+.unreadrow{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding:8px 10px!important;margin-top:10px;box-shadow:inset 3px 0 0 var(--accent)}
+.cmsg.fresh{box-shadow:inset 3px 0 0 var(--accent)}
+.tabs .newdot{margin-left:6px}
 </style>
 
 <div class="shell">
@@ -296,7 +307,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={secs:{},bellOpen:false,bellTab:'all',me:'Lynn',readOps:{},readSup:{},openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={fresh:{},secs:{},bellOpen:false,bellTab:'all',me:'Lynn',readOps:{},readSup:{},openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -358,11 +369,12 @@ function renderSide(){
   if(!ops)return;
   el.className='side'+(S.side?' collapsed':'')+(S.sideOpen?' open':'');
   const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length, lp=purchaseOrders.filter(poLate).length, op=payments.filter(p=>!p.paidOn&&payStatus(p)==='overdue').length;
-  const it=(p,l,i,badge)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}" ${cur===p?'aria-current="page"':''}>${ico(i)}<span class="lbl">${l}</span>${badge?`<span class="tag">${badge}</span>`:''}</button>`;
+  const it=(p,l,i,badge,nw)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}${nw?' ('+nw+' unread supplier message'+(nw>1?'s':'')+')':''}" ${cur===p?'aria-current="page"':''}>${ico(i)}${nw?'<span class="pip"></span>':''}<span class="lbl">${l}</span>${nw?`<span class="newdot">● ${nw}</span>`:''}${badge?`<span class="tag">${badge}</span>`:''}</button>`;
+  const unRq=requests.reduce((a,r)=>a+unreadOps(r.id),0), unPo=purchaseOrders.reduce((a,po)=>a+unreadOps(po.id),0);
   el.innerHTML=`<div class="logo"><i></i><span class="lbl">Brand Hub</span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
-  ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro)}${it('pos','Purchase orders','doc',lp)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
+  ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro,unRq)}${it('pos','Purchase orders','doc',lp,unPo)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
   <div class="grp"><span class="lbl">Partner success</span></div>
   ${it('psHome','PS overview','users')}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
   <div class="side-foot"><button class="si" data-act="side" title="${S.side?'Expand':'Collapse'} sidebar">${ico(S.side?'right':'left')}<span class="lbl">Collapse</span></button></div>`;
@@ -426,7 +438,7 @@ function renderBrand(){
   const tabs=[['overview','Overview'],['inventory','Inventory'],['costs','Costs & COGS'],['orders','Orders & returns'],['requests','Supplier requests'],['pos','POs & payments'],['marketing','Marketing'],['ps','Partner success']];
   return `<button class="back" data-act="nav" data-p="portfolio">← All brands</button>
   <div class="head"><div><h1>${esc(b.name)}</h1><p class="sub">${esc(b.slug)}.myshopify.com · Tier ${b.tier} · ${b.mode==='dropship'?'Dropship':'Ships to our warehouse'} via ${esc(sup)}</p></div><div class="row">${hpill(b.health)}<button class="btn primary" data-act="newreq" data-id="${b.id}">+ New supplier request</button></div></div>
-  <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}${t[0]==='requests'?` <span class="tag">${requests.filter(r=>r.brandId===b.id).length}</span>`:''}</button>`).join('')}</div>
+  <div class="tabs" role="tablist">${tabs.map(t=>`<button role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}${t[0]==='requests'?` <span class="tag">${requests.filter(r=>r.brandId===b.id).length}</span>`:''}${t[0]==='requests'&&requests.filter(r=>r.brandId===b.id).reduce((a,r)=>a+unreadOps(r.id),0)?`<span class="newdot">● ${requests.filter(r=>r.brandId===b.id).reduce((a,r)=>a+unreadOps(r.id),0)}</span>`:''}${t[0]==='pos'&&purchaseOrders.filter(x=>x.brandId===b.id).reduce((a,x)=>a+unreadOps(x.id),0)?`<span class="newdot">● ${purchaseOrders.filter(x=>x.brandId===b.id).reduce((a,x)=>a+unreadOps(x.id),0)}</span>`:''}</button>`).join('')}</div>
   ${({overview:tabOverview,inventory:tabInventory,costs:tabCosts,orders:tabOrders,requests:tabRequests,pos:tabPOs,marketing:tabMarketing,ps:tabPS})[S.tab](b)}`;
 }
 function tabOverview(b){
@@ -679,7 +691,7 @@ function poEvent(po,t){po.events.unshift({t,ago:0})}
 const payRows=list=>list.slice().sort((a,c)=>(a.paidOn?1:0)-(c.paidOn?1:0)||(a.paidOn?c.paidOn-a.paidOn:a.due-c.due));
 
 function poTable(list,showBrand=true){
-  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>PO</th>${showBrand?'<th>Brand</th>':''}<th>Supplier</th><th>Ordered</th><th>ETA</th><th>Status</th><th class="num">Units</th><th class="num">Total</th><th>Paid</th></tr></thead><tbody>${list.map(po=>{const b=brandById(po.brandId),tot=poTotal(po),paid=poPaid(po);return `<tr data-act="openpo" data-id="${po.id}" tabindex="0"><td class="name mono">${po.id}</td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td>${esc(supName(po.supplier))}</td><td class="small">${fdate(po.createdOn)}</td><td>${fdate(po.eta)}<div class="small ${poLate(po)?'down':''}">${po.status==='Received'?'received':po.status==='Cancelled'?'cancelled':rel(po.eta)}</div></td><td>${poPill(po)}</td><td class="num">${poUnits(po).toLocaleString()}</td><td class="num">${money0(tot)}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${tot?Math.min(100,paid/tot*100):0}%"></span></div><span class="small">${po.status==='Cancelled'?'–':money(paid)}</span></div></td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No purchase orders match.</div>'}</div>`;
+  return `<div class="tablewrap"><table style="min-width:900px"><thead><tr><th>PO</th>${showBrand?'<th>Brand</th>':''}<th>Supplier</th><th>Ordered</th><th>ETA</th><th>Status</th><th class="num">Units</th><th class="num">Total</th><th>Paid</th><th>Messages</th></tr></thead><tbody>${list.map(po=>{const b=brandById(po.brandId),tot=poTotal(po),paid=poPaid(po);return `<tr data-act="openpo" data-id="${po.id}" tabindex="0"><td class="name mono">${po.id}</td>${showBrand?`<td>${esc(b.name)}</td>`:''}<td>${esc(supName(po.supplier))}</td><td class="small">${fdate(po.createdOn)}</td><td>${fdate(po.eta)}<div class="small ${poLate(po)?'down':''}">${po.status==='Received'?'received':po.status==='Cancelled'?'cancelled':rel(po.eta)}</div></td><td>${poPill(po)}</td><td class="num">${poUnits(po).toLocaleString()}</td><td class="num">${money0(tot)}</td><td><div class="row" style="gap:8px;flex-wrap:nowrap"><div class="bar"><span style="width:${tot?Math.min(100,paid/tot*100):0}%"></span></div><span class="small">${po.status==='Cancelled'?'–':money(paid)}</span></div></td><td data-v="${cmCount(po.id)}">${msgCell(po.id)}</td></tr>`}).join('')}</tbody></table>${list.length?'':'<div class="empty">No purchase orders match.</div>'}</div>`;
 }
 function payTable(list,cols){
   const c=cols||{};
@@ -846,12 +858,13 @@ function renderSupplier(){
   const poTodo=purchaseOrders.filter(po=>po.supplier===sid&&['Sent','Confirmed','In production'].includes(po.status)).length;
   const invTodo=missingInv(sid).length+invoices.filter(i=>i.supplier===sid&&i.status==='Disputed'&&!invoices.some(j=>j.poId===i.poId&&j.status!=='Disputed')).length;
   const brandCount=new Set(brands.filter(b=>b.supplier===sid).map(b=>b.id)).size;
-  const T=(k,l,n)=>`<button role="tab" data-act="suptab" data-t="${k}" aria-selected="${tab===k}">${l}${n?` <span class="tag">${n}</span>`:''}</button>`;
+  const T=(k,l,n,u)=>`<button role="tab" data-act="suptab" data-t="${k}" aria-selected="${tab===k}">${l}${n?` <span class="tag">${n}</span>`:''}${u?`<span class="newdot" title="${u} unread message${u>1?'s':''}">● ${u}</span>`:''}</button>`;
+  const uRq=requests.filter(r=>r.supplier===sid).reduce((a,r)=>a+unreadSup(r.id),0), uPo=purchaseOrders.filter(po=>po.supplier===sid).reduce((a,po)=>a+unreadSup(po.id),0);
   const body=tab==='pos'?supPOs(sid):tab==='invoices'?supInvoices(sid):supRequests(sid);
   return `<div class="head"><div><h1>Hi, ${esc(s.name)}</h1><p class="sub">${rq+poTodo+invTodo} thing${rq+poTodo+invTodo===1?'':'s'} need your action · you supply ${brandCount} brands</p></div></div>
   <div class="supbanner"><b>Opened from your WhatsApp link.</b> No password needed. You only see work assigned to ${esc(s.name)}.</div>
   ${supAlerts(sid)}
-  <div class="tabs" role="tablist">${T('requests','Orders, returns & cancellations',rq)}${T('pos','Purchase orders',poTodo)}${T('invoices','Invoices & payments',invTodo)}</div>${body}`;
+  <div class="tabs" role="tablist">${T('requests','Orders, returns & cancellations',rq,uRq)}${T('pos','Purchase orders',poTodo,uPo)}${T('invoices','Invoices & payments',invTodo)}</div>${body}`;
 }
 function supPOs(sid){
   const order=['Sent','Confirmed','In production','Shipped','Received'];
@@ -867,7 +880,7 @@ function supPoCard(po){
   else if(po.status==='In production')action=`<div class="field" style="margin:0"><label for="sc-${po.id}">Carrier</label><select id="sc-${po.id}">${carriers}</select></div><div class="field" style="margin:0"><label for="st-${po.id}">Tracking or container number</label><input type="text" id="st-${po.id}" placeholder="Required"></div><div class="field" style="margin:0"><label for="sf-${po.id}">Packing list (optional)</label><input type="file" id="sf-${po.id}"></div><button class="btn primary" data-act="supship" data-id="${po.id}">Mark shipped</button>`;
   else if(po.status==='Shipped')action=`<div class="small">Shipped with ${esc(po.carrier)} <span class="mono">${esc(po.tracking)}</span>. The brand team will mark it received.</div>`;
   else action=`<div class="small">Received on ${fdate(po.receivedOn)}.</div>`;
-  return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b class="mono">${po.id}</b><span class="tag">${esc(b.name)}</span>${po.supplierRef?`<span class="tag">Your order ${esc(po.supplierRef)}</span>`:''}</div><div class="small" style="margin-top:4px">Ordered ${fdate(po.createdOn)} · arrival ${fdate(po.eta)} (${po.status==='Received'?'received':rel(po.eta)}) · ${esc(po.terms)}</div></div>${poPill(po)}</div>
+  return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b class="mono">${po.id}</b><span class="tag">${esc(b.name)}</span>${po.supplierRef?`<span class="tag">Your order ${esc(po.supplierRef)}</span>`:''}${unreadSup(po.id)?`<span class="newdot">● ${unreadSup(po.id)} new message${unreadSup(po.id)>1?'s':''}</span>`:''}</div><div class="small" style="margin-top:4px">Ordered ${fdate(po.createdOn)} · arrival ${fdate(po.eta)} (${po.status==='Received'?'received':rel(po.eta)}) · ${esc(po.terms)}</div></div>${poPill(po)}</div>
   <div>${po.lines.map(l=>`<div>${l.qty.toLocaleString()} × <b>${esc(l.name)}</b> <span class="mono small">${l.sku}</span> <span class="small">at ${usd2(l.unit)}</span></div>`).join('')}<div class="small" style="margin-top:4px">Total ${money0(poTotal(po))} including freight and handling${po.changeReq?`<br><span class="down">! Your change request is with the brand team: ${esc(po.changeReq)}</span>`:''}</div></div>
   <div class="acts">${action}</div>
   ${invs.length||miss.length?`<div style="border-top:1px solid var(--line);padding-top:10px"><div class="small" style="margin-bottom:6px"><b>Invoices</b></div>${invs.map(i=>`<div class="row" style="justify-content:space-between;margin-bottom:6px"><span>${esc(i.number)} · ${money0(i.amount)} <span class="small">${esc(i.file)}${i.status==='Disputed'?' · '+esc(i.reviewNote):''}</span></span>${invPill(i)}</div>`).join('')}${miss.length?`<button class="btn sm primary" data-act="invmodal" data-id="${po.id}">+ Add invoice</button> <span class="small">${miss.length} payment${miss.length>1?'s':''} without an invoice</span>`:''}</div>`:''}${thread(po.id,'supplier')}</div>`;
@@ -1121,9 +1134,10 @@ function thread(ref,role){
   const sup=role==='supplier', open=!sup||S.openThreads[ref];
   const all=comments.filter(c=>c.ref===ref&&(!sup||c.kind==='shared')).sort((a,b)=>a.at-b.at);
   const unread=sup?unreadSup(ref):0, sname=supName(supOfRef(ref));
-  if(!sup)comments.forEach(c=>{if(c.ref===ref&&c.role==='supplier')c.readByOps=true});
-  const msg=c=>`<div class="cmsg ${c.kind==='internal'?'internal':''}"><div class="meta"><b style="color:var(--ink)">${esc(sup&&c.by==='You'?'Ops team':c.by)}</b>${c.role==='supplier'?'<span class="tag">Supplier</span>':sup?'<span class="tag">Brand team</span>':''}${!sup?(c.kind==='internal'?'<span class="tag">Internal only</span>':'<span class="tag">Shared with supplier</span>'):''}<span>${ago((Date.now()-c.at)/36e5)}</span></div><div>${fmtText(c.text)}</div></div>`;
-  const head=sup?`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:10px"><span><b>Messages</b> <span class="small">${all.length} with the brand team${unread?` · <span class="down">${unread} new</span>`:''}</span></span><button class="btn sm" data-act="threadtoggle" data-ref="${ref}">${open?'Hide':'Open'}</button></div>`:`<h3 style="margin:20px 0 8px">Discussion <span class="small">(${all.length})</span></h3>`;
+  const isReq=requests.some(r=>r.id===ref), freshIds=!sup?comments.filter(c=>c.ref===ref&&c.role==='supplier'&&!c.readByOps).map(c=>c.id):[];
+  if(!sup&&S.secs[(isReq?'req':'po')+':discussion']!==false&&freshIds.length){comments.forEach(c=>{if(c.ref===ref&&c.role==='supplier')c.readByOps=true});S.dirtyRead=true;renderSide()}
+  const msg=c=>`<div class="cmsg ${c.kind==='internal'?'internal':''} ${freshIds.includes(c.id)||(sup&&c.role!=='supplier'&&(!c.readBySupplier||(S.fresh[ref]||[]).includes(c.id)))?'fresh':''}"><div class="meta"><b style="color:var(--ink)">${esc(sup&&c.by==='You'?'Ops team':c.by)}</b>${c.role==='supplier'?'<span class="tag">Supplier</span>':sup?'<span class="tag">Brand team</span>':''}${!sup?(c.kind==='internal'?'<span class="tag">Internal only</span>':'<span class="tag">Shared with supplier</span>'):''}${freshIds.includes(c.id)||(sup&&c.role!=='supplier'&&(!c.readBySupplier||(S.fresh[ref]||[]).includes(c.id)))?'<span class="newdot">New</span>':''}<span>${ago((Date.now()-c.at)/36e5)}</span></div><div>${fmtText(c.text)}</div></div>`;
+  const head=sup?`<div class="row ${unread?'unreadrow':''}" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:10px"><span><b>Messages</b> <span class="small">${all.length} with the brand team</span>${unread?` <span class="newdot">● ${unread} new</span>`:''}</span><button class="btn ${unread?'primary ':''}sm" data-act="threadtoggle" data-ref="${ref}">${open?'Hide':unread?'Read':'Open'}</button></div>`:`<h3 style="margin:20px 0 8px" data-ref="${ref}">Discussion <span class="small">(${all.length})</span>${freshIds.length?` <span class="newdot">● ${freshIds.length} new</span>`:''}</h3>`;
   if(!open)return head;
   const list=all.length?`<div class="thread">${all.map(msg).join('')}</div>`:`<p class="small" style="margin:0 0 10px">${sup?'No messages yet.':'No notes or messages yet. Notes are for your team. Shared messages go to '+esc(sname)+'.'}</p>`;
   const chips=TEAM.map(n=>`<button class="btn sm" data-act="mention" data-ref="${ref}" data-n="${esc(n)}">@${esc(n.split(' ')[0])}</button>`).join('');
@@ -1176,13 +1190,13 @@ function enhanceSections(root){
       const body=document.createElement('div');body.className='secbody';
       let n=h.nextSibling;while(n&&!(n.nodeType===1&&(n.tagName==='H3'||n.tagName==='DETAILS'||n.querySelector(':scope > h3')))){const nx=n.nextSibling;body.appendChild(n);n=nx}
       const d=document.createElement('details');d.className='sec';
-      const key=kind+':'+h.textContent.replace(/\(\d+\)/,'').trim().toLowerCase();
-      d.dataset.sec=key;d.open=S.secs[key]!==false;
+      const key=kind+':'+(h.firstChild?h.firstChild.textContent:h.textContent).trim().toLowerCase();
+      d.dataset.sec=key;if(h.dataset.ref)d.dataset.ref=h.dataset.ref;d.open=S.secs[key]!==false;
       const sm=document.createElement('summary');par.insertBefore(d,h);sm.appendChild(h);d.appendChild(sm);d.appendChild(body);
     });
   });
 }
-document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.sec)S.secs[d.dataset.sec]=d.open},true);
+document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.sec){S.secs[d.dataset.sec]=d.open;if(d.open&&d.dataset.ref&&/:discussion$/.test(d.dataset.sec)){comments.forEach(c=>{if(c.ref===d.dataset.ref&&c.role==='supplier')c.readByOps=true});renderTop();renderSide()}}},true);
 /* ---------- notification bell ---------- */
 const BELL_KIND={alert:'crit',reply:'good',message:'info',mention:'info',invoice:'warn',payment:'crit',po:'warn',doc:'info',request:'warn'};
 function notifsOps(){
@@ -1285,7 +1299,7 @@ function supCard(r){
   }else{
     action=`<div class="small">${r.status==='declined'?esc(r.note):`${esc(r.carrier)} · <span class="mono">${esc(r.tracking)}</span>${r.label?` · ${esc(r.label)}`:''}`}</div>`;
   }
-  return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span></div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
+  return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span>${unreadSup(r.id)?`<span class="newdot">● ${unreadSup(r.id)} new message${unreadSup(r.id)>1?'s':''}</span>`:''}</div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
   <div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>
   ${supAddr(r)}<div class="acts">${action}</div>${thread(r.id,'supplier')}</div>`;
 }
@@ -1339,8 +1353,8 @@ const ACTIONS={
   sort:e=>{const k=e.dataset.k;S.dir=S.sort===k?-S.dir:(k==='name'||k==='health'||k==='mode'||k==='supplier'?1:-1);S.sort=k;$('#tbl').innerHTML=brandTable()},
   more:()=>{S.show+=20;$('#tbl').innerHTML=brandTable()},
   openreq:e=>reqDrawer(e.dataset.id),
-  closelayer:(e,ev)=>{if(ev.target===e)$('#layer').innerHTML=''},
-  closelayer2:()=>{$('#layer').innerHTML=''},
+  closelayer:(e,ev)=>{if(ev.target===e){$('#layer').innerHTML='';if(S.dirtyRead){S.dirtyRead=false;render()}}},
+  closelayer2:()=>{$('#layer').innerHTML='';if(S.dirtyRead){S.dirtyRead=false;render()}},
   rq:e=>{S.rq=e.dataset.k;render()},
   newreq:e=>newReqModal(e.dataset.id!=null?+e.dataset.id:null,e.dataset.no),
   remind:e=>{updateReq(e.dataset.id,()=>{},'Reminder sent by WhatsApp',false);reqDrawer(e.dataset.id);toast('Reminder sent by WhatsApp')},
@@ -1448,7 +1462,7 @@ const ACTIONS={
     toast(msg);
   },
   mention:e=>{const ta=$('#cm-'+e.dataset.ref),i=ta.selectionStart==null?ta.value.length:ta.selectionStart;ta.value=ta.value.slice(0,i)+'@'+e.dataset.n+' '+ta.value.slice(i);ta.focus()},
-  threadtoggle:e=>{const ref=e.dataset.ref;S.openThreads[ref]=!S.openThreads[ref];if(S.openThreads[ref])comments.forEach(c=>{if(c.ref===ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true});render()},
+  threadtoggle:e=>{const ref=e.dataset.ref;S.openThreads[ref]=!S.openThreads[ref];if(S.openThreads[ref]){S.fresh[ref]=comments.filter(c=>c.ref===ref&&c.kind==='shared'&&c.role!=='supplier'&&!c.readBySupplier).map(c=>c.id);comments.forEach(c=>{if(c.ref===ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true})}else delete S.fresh[ref];render()},
   bell:()=>{S.bellOpen=!S.bellOpen;renderTop()},
   belltab:e=>{S.bellTab=e.dataset.k;renderTop()},
   bellall:()=>{curNotifs().forEach(n=>{(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;if(n.id.startsWith('cm:'))comments.forEach(c=>{if('cm:'+c.id===n.id)c.readByOps=true});if(n.id.startsWith('s-cm:'))comments.forEach(c=>{if('s-cm:'+c.id===n.id)c.readBySupplier=true})});renderTop()},
@@ -1550,7 +1564,7 @@ document.addEventListener('click',ev=>{if(S.bellOpen&&!ev.target.closest('.bellw
 document.addEventListener('keydown',ev=>{
   if(ev.key==='Escape'&&S.bellOpen){S.bellOpen=false;renderTop()}
   if(ev.key==='Enter'&&ev.target.matches('tr[data-act]'))ACTIONS[ev.target.dataset.act](ev.target,ev);
-  if(ev.key==='Escape')$('#layer').innerHTML='';
+  if(ev.key==='Escape'){$('#layer').innerHTML='';if(S.dirtyRead){S.dirtyRead=false;render()}}
 });
 const tip=$('#tip');
 document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.closest('[data-tip]');if(t){tip.textContent=t.dataset.tip;tip.style.opacity=1;tip.style.left=ev.clientX+'px';tip.style.top=ev.clientY+'px'}else tip.style.opacity=0});
