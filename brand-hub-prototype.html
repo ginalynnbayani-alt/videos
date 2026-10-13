@@ -1,35 +1,38 @@
 <title>Brand Hub</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Oxanium:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sticky top bar, role switch (Ops / Supplier), page content in a centered 1200px column; tables scroll inside their own wrapper. */
 :root{
-  --bg:#F6F4EE; --surface:#FFFFFF; --ink:#1C2420; --ink2:#4F5A54; --muted:#66706A;
-  --line:#E1DDCF; --axis:#C9C4B3; --wash:#EFECE2; --accent:#12335C; --accent-deep:#0A1E38; --accent-soft:#D9E2EE; --on-accent:#FFFFFF;
-  --gold:#C9972E; --on-c:#FFFFFF;
-  --side-bg:#0A1E38; --side-ink:rgba(237,234,224,.78); --side-ink-strong:#F6F4EE; --side-line:rgba(255,255,255,.12); --side-hover:rgba(255,255,255,.07); --side-active-bg:#F6F4EE; --side-active-ink:#0A1E38;
-  --thead-bg:#0A1E38; --thead-ink:#EDEAE0;
-  --s1:#2F66B8; --s2:#D08A1E; --s3:#2E8B6A;
-  --good:#3C7A5A; --warn:#C9972E; --crit:#B5473A; --serious:#C9722E; --good-ink:#2F6B4D;
-  --card-shadow:0 1px 2px rgba(28,36,32,.06),0 2px 8px rgba(28,36,32,.04);
-  --shadow:0 1px 2px rgba(28,36,32,.08),0 10px 30px rgba(28,36,32,.18);
-  --sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif; --serif:'Fraunces',Georgia,'Times New Roman',serif; --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#F3F4FA; --surface:#FFFFFF; --ink:#262630; --head:#363535; --ink2:#565656; --muted:#6A6D80;
+  --line:#E3E3EA; --axis:#C6C9DA; --wash:#EDEEF7; --accent:#0B7C9C; --accent-deep:#075E78; --accent-soft:#D3F1FA; --on-accent:#FFFFFF;
+  --brand:#21CFF5; --magenta:#BE1FAE; --violet:#742F97; --on-c:#FFFFFF;
+  --side-bg:linear-gradient(180deg,#14246E 0%,#1A1A51 52%,#2A1133 100%); --side-solid:#1A1A51; --side-ink:rgba(232,234,251,.8); --side-ink-strong:#FFFFFF; --side-line:rgba(255,255,255,.14); --side-hover:rgba(255,255,255,.08); --side-active-bg:rgba(33,207,245,.16); --side-active-ink:#FFFFFF;
+  --thead-bg:#1F1B4D; --thead-ink:#E9ECFF;
+  --btn-bg:#363535; --btn-ink:#8EDDFB; --btn-edge:#742F97; --btn-hover:#BE1FAE; --btn-hover-ink:#FFFFFF;
+  --s1:#1F98BE; --s2:#E09B2D; --s3:#BE1FAE;
+  --good:#1BA37A; --warn:#F0A530; --crit:#D13654; --serious:#E0703A; --good-ink:#0F7A5A;
+  --card-shadow:0 1px 2px rgba(20,12,31,.05),0 4px 14px rgba(20,12,31,.05);
+  --shadow:0 2px 6px rgba(20,12,31,.1),0 14px 38px rgba(20,12,31,.22);
+  --sans:'Nunito Sans',system-ui,-apple-system,"Segoe UI",sans-serif; --serif:var(--sans); --display:'Oxanium','Nunito Sans',system-ui,sans-serif; --mono:'Oxanium',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0F1512; --surface:#18211C; --ink:#EDEAE0; --ink2:#B9C0B8; --muted:#8F9A92;
-  --line:#2A352E; --axis:#3B4740; --wash:#212C25; --accent:#8FB3E3; --accent-deep:#B7D0F0; --accent-soft:#1D3B5E; --on-accent:#0A1E38;
-  --gold:#D9A844; --on-c:#0F1512;
-  --side-bg:#091B2E; --thead-bg:#12283F;
-  --s1:#5B8FD6; --s2:#B98A1E; --s3:#3A9E7C;
-  --good:#5FA382; --warn:#D9A844; --crit:#D77A6C; --serious:#D98F5C; --good-ink:#6FB794;
-  --card-shadow:none; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.55); color-scheme:dark}}
+  --bg:#0C0A1D; --surface:#15122D; --ink:#EEF0FF; --head:#F2F3FF; --ink2:#B8BBDA; --muted:#8E91B5;
+  --line:#2A2650; --axis:#3A3668; --wash:#1E1A40; --accent:#21CFF5; --accent-deep:#8EE6FA; --accent-soft:#12404F; --on-accent:#08121C;
+  --on-c:#0C0A1D;
+  --side-bg:linear-gradient(180deg,#0E1650 0%,#120F3A 55%,#1F0D2B 100%); --side-solid:#120F3A; --thead-bg:#241F5A;
+  --btn-bg:#2A2650; --btn-ink:#8EE6FA;
+  --s1:#2A9DC4; --s2:#B98A22; --s3:#B455C4;
+  --good:#34C79A; --warn:#F2B24A; --crit:#F0627C; --serious:#F08A5A; --good-ink:#4FD3AA;
+  --card-shadow:none; --shadow:0 2px 6px rgba(0,0,0,.4),0 14px 38px rgba(0,0,0,.6); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0F1512; --surface:#18211C; --ink:#EDEAE0; --ink2:#B9C0B8; --muted:#8F9A92;
-  --line:#2A352E; --axis:#3B4740; --wash:#212C25; --accent:#8FB3E3; --accent-deep:#B7D0F0; --accent-soft:#1D3B5E; --on-accent:#0A1E38;
-  --gold:#D9A844; --on-c:#0F1512;
-  --side-bg:#091B2E; --thead-bg:#12283F;
-  --s1:#5B8FD6; --s2:#B98A1E; --s3:#3A9E7C;
-  --good:#5FA382; --warn:#D9A844; --crit:#D77A6C; --serious:#D98F5C; --good-ink:#6FB794;
-  --card-shadow:none; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.55); color-scheme:dark}
+  --bg:#0C0A1D; --surface:#15122D; --ink:#EEF0FF; --head:#F2F3FF; --ink2:#B8BBDA; --muted:#8E91B5;
+  --line:#2A2650; --axis:#3A3668; --wash:#1E1A40; --accent:#21CFF5; --accent-deep:#8EE6FA; --accent-soft:#12404F; --on-accent:#08121C;
+  --on-c:#0C0A1D;
+  --side-bg:linear-gradient(180deg,#0E1650 0%,#120F3A 55%,#1F0D2B 100%); --side-solid:#120F3A; --thead-bg:#241F5A;
+  --btn-bg:#2A2650; --btn-ink:#8EE6FA;
+  --s1:#2A9DC4; --s2:#B98A22; --s3:#B455C4;
+  --good:#34C79A; --warn:#F2B24A; --crit:#F0627C; --serious:#F08A5A; --good-ink:#4FD3AA;
+  --card-shadow:none; --shadow:0 2px 6px rgba(0,0,0,.4),0 14px 38px rgba(0,0,0,.6); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -211,39 +214,47 @@ details.sec>summary:focus-visible{outline:2px solid var(--accent);outline-offset
 .cmsg.fresh{box-shadow:inset 3px 0 0 var(--accent)}
 .tabs .newdot{margin-left:6px}
 
-/* ---- LaunchVector theme: warm paper page, navy chrome, gold accent, Fraunces headings ---- */
-h1,h2{font-family:var(--serif);font-weight:600;letter-spacing:-.005em}
-h1{font-size:27px} h2{font-size:17px}
-.proto{font-family:var(--mono);font-size:11px;letter-spacing:.03em}
-.logo{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1.1;letter-spacing:0}
-.logo small{display:block;font:500 9.5px/1.2 var(--mono);letter-spacing:.16em;opacity:.65;margin-bottom:2px}
-.logo i{width:22px;height:22px;border-radius:6px;background:var(--gold)}
-.logo i::after{inset:6px;border-radius:2px;background:#0A1E38}
-.kpi .v{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
-.kpi h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-.card,.tablewrap{box-shadow:var(--card-shadow)}
-th{background:var(--thead-bg);color:var(--thead-ink);letter-spacing:.06em;border-bottom:0}
-th button:hover{color:#fff}
-details.sec>summary h3{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600}
-.tabs button[aria-selected="true"]{border-bottom-color:var(--gold)}
-.btn.primary:hover{filter:none;background:var(--accent-deep);border-color:var(--accent-deep)}
+/* ---- LaunchVector website theme: deep-indigo chrome, cyan accent, angular buttons, Nunito Sans + Oxanium ---- */
+h1,h2{font-family:var(--sans);color:var(--head);letter-spacing:.2px}
+h1{font-size:28px;font-weight:800}
+h1::after{content:"";display:block;width:56px;height:4px;border-radius:2px;background:var(--brand);margin-top:8px}
+h2{font-size:17px;font-weight:700}
+.logo{font-family:var(--display);letter-spacing:0;line-height:1}
+.logo b{display:block;font:600 17px/1 var(--display);letter-spacing:.18em}
+.logo small{display:block;font:500 8.5px/1.2 var(--display);letter-spacing:.3em;opacity:.72;margin-top:4px}
+.logo i{width:24px;height:24px;border-radius:50%;background:conic-gradient(from 210deg,#BE1FAE,#21CFF5,#BE1FAE)}
+.logo i::after{inset:4px;border-radius:50%;background:var(--side-solid)}
+.mono{font-weight:500}
+.kpi .v{font-family:var(--display);font-weight:600;letter-spacing:0}
+.kpi h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.card,.tablewrap{box-shadow:var(--card-shadow);border-radius:14px}
+th{background:var(--thead-bg);color:var(--thead-ink);letter-spacing:.06em;border-bottom:0;font-weight:700}
+th button:hover{color:var(--brand)}
+details.sec>summary h3{font-family:var(--sans);font-size:15px;color:var(--head);font-weight:700}
+.tabs button[aria-selected="true"]{border-bottom:3px solid var(--brand);margin-bottom:-2px}
 .link{color:var(--accent)}
 .pill b{color:var(--on-c)}
-.pill.warn b{color:#1C2420}
+.pill.warn b{color:#2A1B00}
 .badge{color:var(--on-c)}
-.si .newdot{background:var(--gold);color:#0A1E38}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-/* sidebar */
+.proto{font-family:var(--sans);font-size:12px;letter-spacing:0}
+/* site-style angular primary buttons */
+.btn.primary{--cut:14px;background:var(--btn-bg);color:var(--btn-ink);border:0;border-left:2px solid var(--btn-edge);border-right:2px solid var(--btn-edge);font-weight:700;padding:8px 16px;clip-path:polygon(0 0,calc(100% - var(--cut)) 0,100% calc(var(--cut)*.55),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)*.55))}
+.btn.primary.sm{--cut:9px;padding:4px 11px}
+.btn.primary:hover{background:var(--btn-hover);color:var(--btn-hover-ink);filter:none}
+.btn.primary:focus-visible{clip-path:none;outline:2px solid var(--brand);outline-offset:2px}
+.btn.primary[style*="width:100%"]{--cut:18px}
+/* sidebar: deep indigo gradient like the site hero */
 .side{background:var(--side-bg);border-right:0;color:var(--side-ink)}
 .side .logo{color:var(--side-ink-strong)}
-.side .grp{color:rgba(237,234,224,.5);font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;font-weight:500}
-.si{color:var(--side-ink);font-weight:600;font-size:13.5px}
+.side .grp{color:rgba(232,234,251,.55);font-family:var(--display);font-size:10.5px;letter-spacing:.16em;font-weight:500}
+.si{color:var(--side-ink);font-weight:700;font-size:13.5px}
 .si:hover{background:var(--side-hover);color:var(--side-ink-strong)}
-.si[aria-current="page"]{background:var(--side-active-bg);color:var(--side-active-ink);box-shadow:inset 3px 0 0 var(--gold)}
-.side .tag{background:rgba(255,255,255,.14);color:var(--side-ink-strong)}
-.side .si[aria-current="page"] .tag{background:rgba(10,30,56,.12);color:var(--side-active-ink)}
+.si[aria-current="page"]{background:var(--side-active-bg);color:var(--side-active-ink);box-shadow:inset 3px 0 0 var(--brand)}
+.side .tag{background:rgba(255,255,255,.15);color:var(--side-ink-strong)}
 .side-foot{border-top-color:var(--side-line)}
-.pip{background:var(--gold);border-color:var(--side-bg)}
+.si .newdot{background:var(--brand);color:#0B1458}
+.pip{background:var(--brand);border-color:var(--side-solid)}
 @media (min-width:861px){.side.collapsed .grp{background:var(--side-line)}}
 </style>
 
@@ -402,7 +413,7 @@ const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents',alerts:'Ops team · Urgent alerts'};
 function renderTop(){
   const ops=S.role==='ops';
-  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i><span><small>LAUNCHVECTOR</small>Brand Hub</span></div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
+  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i><span><b>LAUNCH</b><small>VECTOR · BRAND HUB</small></span></div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
   <span class="spacer"></span>
   ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
   ${bellHtml()}
@@ -417,7 +428,7 @@ function renderSide(){
   const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length, lp=purchaseOrders.filter(poLate).length, op=payments.filter(p=>!p.paidOn&&payStatus(p)==='overdue').length;
   const it=(p,l,i,badge,nw)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}${nw?' ('+nw+' unread supplier message'+(nw>1?'s':'')+')':''}" ${cur===p?'aria-current="page"':''}>${ico(i)}${nw?'<span class="pip"></span>':''}<span class="lbl">${l}</span>${nw?`<span class="newdot">● ${nw}</span>`:''}${badge?`<span class="tag">${badge}</span>`:''}</button>`;
   const unRq=requests.reduce((a,r)=>a+unreadOps(r.id),0), unPo=purchaseOrders.reduce((a,po)=>a+unreadOps(po.id),0);
-  el.innerHTML=`<div class="logo"><i></i><span class="lbl"><small>LAUNCHVECTOR</small>Brand Hub</span></div>
+  el.innerHTML=`<div class="logo"><i></i><span class="lbl"><b>LAUNCH</b><small>VECTOR · BRAND HUB</small></span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
   ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro,unRq)}${it('pos','Purchase orders','doc',lp,unPo)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
