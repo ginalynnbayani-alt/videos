@@ -156,6 +156,11 @@ dt{color:var(--muted)} dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .attn:last-child{border-bottom:0}
 .link{border:0;background:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer;text-align:left}
 .link:hover{text-decoration:underline}
+.btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-right:6px;vertical-align:-2px}
+.btn.urgent{border-color:var(--crit);color:var(--crit);font-weight:650}
+.btn.urgent:hover{background:color-mix(in srgb,var(--crit) 12%,transparent)}
+a.btn{text-decoration:none;display:inline-block;color:var(--ink)}
+.alertbar{display:grid;gap:8px;background:color-mix(in srgb,var(--crit) 10%,var(--surface));border:1px solid var(--crit);border-radius:12px;padding:12px 14px;margin-bottom:16px}
 </style>
 
 <div class="shell">
@@ -179,7 +184,7 @@ function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15
 const R=rng(2026), ri=(a,b)=>Math.floor(R()*(b-a+1))+a, pick=a=>a[Math.floor(R()*a.length)];
 const A=['Alder','Birch','Cedar','Dune','Ember','Fjord','Grove','Harbor','Iris','Juniper','Kestrel','Linden','Maple','Nova','Olive','Pine','Quill','Reed','Sage','Tide','Umber','Vale','Willow','Yarrow','Zephyr','Amber','Brook','Cove','Delta','Echo'];
 const B=['Goods','Home','Supply','Studio','Labs','Outdoors','Kitchen','Pet Co','Wear','Beauty','Tools','Kids'];
-const SUPPLIERS=[{id:0,name:'Northgate Supply',email:'orders@northgate.example'},{id:1,name:'Harborline Fulfillment',email:'ops@harborline.example'}];
+const SUPPLIERS=[{id:0,name:'Northgate Supply',email:'orders@northgate.example',contact:'Priya Raman',phone:'+1 555 0111',wa:'+1 555 0112',backup:{name:'Tomas Lindgren',phone:'+1 555 0113'},hours:'8am to 6pm Pacific, Mon to Sat',seenMin:3},{id:1,name:'Harborline Fulfillment',email:'ops@harborline.example',contact:'Dev Okonkwo',phone:'+1 555 0121',wa:'+1 555 0122',backup:{name:'Mei Tanaka',phone:'+1 555 0123'},hours:'7am to 5pm Eastern, Mon to Fri',seenMin:190}];
 const PEOPLE={ps:['Lynn','Beatriz','KC','Britni'],meta:['Priya Nair','Leo Brandt'],google:['Sam Ortega','Ana Lindqvist'],email:['Jo Mercer','Kai Abdi'],ops:['Rina Castillo','Ben Hoang']};
 const NOUN={Goods:['Tote','Mug','Candle','Blanket','Planter','Tray','Journal'],Home:['Throw','Vase','Lamp','Rug','Cushion','Basket'],Supply:['Kit','Organizer','Bin','Caddy','Rack'],Studio:['Print','Frame','Brush Set','Palette','Canvas'],Labs:['Serum','Cleanser','Mist','Balm'],Outdoors:['Pack','Bottle','Tent Stake Set','Camp Mug','Hammock'],Kitchen:['Skillet','Knife','Board','Whisk','Colander'],'Pet Co':['Leash','Bed','Chew Toy','Bowl','Harness'],Wear:['Tee','Hoodie','Beanie','Socks','Jacket'],Beauty:['Lip Tint','Palette','Brush','Toner'],Tools:['Driver Set','Level','Tape','Clamp'],Kids:['Puzzle','Backpack','Blocks','Bib','Cup']};
 const FIRST=['Maya','Noah','Ivy','Omar','Lena','Theo','Zoe','Ravi','Cleo','Hugo','Nia','Finn'];
@@ -192,6 +197,9 @@ const LAST=['Alvarez','Brooks','Chen','Dubois','Eriksen','Fofana','Grant','Hadda
 const OPEN_ACTIONS=['Send Q4 plan','Share creative results','Review return reasons','Confirm BFCM inventory','Schedule renewal call'];
 const ISSUE_TEXT=['Meta payment method declined','Google Merchant Center disapproved products','Supplier delays on restock','Pixel not firing on checkout','Creative refresh needed','Zendesk backlog over 48 hours'];
 const CREATIVE=['Mira Solis','Dev Patel','Hana Kim'], UGC=['Cory Blake','Isla Reyes','Noor Haddad'];
+const R2=rng(777), ri2=(a,b)=>Math.floor(R2()*(b-a+1))+a, pick2=a=>a[Math.floor(R2()*a.length)];
+const STREETS=['Maple Ave','Cedar St','Lakeview Dr','Oak Lane','Harbor Rd','Pine Ct','Sunset Blvd'], CITIES=[['Austin','TX','78701'],['Denver','CO','80202'],['Portland','OR','97205'],['Raleigh','NC','27601'],['Columbus','OH','43215'],['Tampa','FL','33602']];
+
 const dayLabel=i=>new Date(2026,8,12+i).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
 const brands=[];
@@ -246,7 +254,7 @@ const brandById=id=>brands[id];
 
 /* ---------- requests ---------- */
 let reqSeq=1040; const requests=[];
-function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',carrier:'',label:'',note:'',events:[]},o);const p={order:'ORD',return:'RET',cancellation:'CXL'}[r.type];r.id=p+'-'+(++reqSeq);r.events.unshift({sys:true,t:'Request created by '+r.by,ago:r.hoursAgo});r.events.unshift({sys:true,t:'Notified '+SUPPLIERS[r.supplier].name+' by email and WhatsApp',ago:r.hoursAgo});return r;}
+function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',carrier:'',label:'',note:'',events:[],addrPending:false,addrConflict:false,addrHistory:[]},o);if(!r.addr)r.addr=sampleAddr(r.type,brandById(r.brandId));const p={order:'ORD',return:'RET',cancellation:'CXL'}[r.type];r.id=p+'-'+(++reqSeq);r.events.unshift({sys:true,t:'Request created by '+r.by,ago:r.hoursAgo});r.events.unshift({sys:true,t:'Notified '+SUPPLIERS[r.supplier].name+' by email and WhatsApp',ago:r.hoursAgo});return r;}
 (function seed(){
   const ex=[['return',2,'ack'],['return',3,'notified'],['cancellation',1,'notified'],['order',5,'notified'],['return',30,'notified'],['cancellation',26,'notified'],['return',7,'done'],['order',9,'ack'],['cancellation',4,'declined'],['return',50,'ack'],['order',3,'done'],['return',12,'notified'],['cancellation',0.5,'notified'],['order',40,'notified']];
   ex.forEach((e,i)=>{
@@ -261,7 +269,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -278,7 +286,7 @@ const HEALTH={green:['good','✓','Healthy'],yellow:['warn','!','Needs attention
 const hpill=h=>{const x=HEALTH[h];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
 const isOverdue=r=>r.status==='notified'&&r.hoursAgo>=24;
 const RS={notified:['idle','○','Awaiting supplier'],ack:['info','◐','In progress'],done:['good','✓','Completed'],declined:['crit','!','Cannot cancel'],overdue:['crit','!','Overdue']};
-const spill=r=>{const x=RS[isOverdue(r)?'overdue':r.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`};
+const spill=r=>{const x=RS[isOverdue(r)?'overdue':r.status];return `<span class="pill ${x[0]}"><b>${x[1]}</b>${x[2]}</span>`+(r.addrPending?` <span class="pill warn"><b>!</b>Address changed</span>`:'')+(r.addrConflict?` <span class="pill crit"><b>!</b>Shipped to old address</span>`:'')};
 const openReqs=r=>r.status!=='done'&&r.status!=='declined';
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
 const supName=id=>SUPPLIERS[id].name;
@@ -305,14 +313,15 @@ function spark(vals){
 }
 
 /* ---------- top bar ---------- */
-const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/>',card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>'};
+const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/>',card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>'};
 const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
-const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents'};
+const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents',alerts:'Ops team · Urgent alerts'};
 function renderTop(){
   const ops=S.role==='ops';
   $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i>Brand Hub</div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
   <span class="spacer"></span>
   ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
+  ${ops?`<button class="btn urgent" data-act="urgent">${ico('bolt')}Urgent</button>`:`<button class="btn urgent" data-act="supurgent">${ico('bolt')}Contact brand team</button>`}
   <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Team view</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
 }
 function renderSide(){
@@ -325,7 +334,7 @@ function renderSide(){
   el.innerHTML=`<div class="logo"><i></i><span class="lbl">Brand Hub</span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
-  ${it('opsHome','Ops overview','pulse')}${it('requests','Supplier requests','truck',ro)}${it('pos','Purchase orders','doc',lp)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
+  ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro)}${it('pos','Purchase orders','doc',lp)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
   <div class="grp"><span class="lbl">Partner success</span></div>
   ${it('psHome','PS overview','users')}${it('tracker','Update tracker','calendar',od)}${it('activity','Activity log','list')}
   <div class="side-foot"><button class="si" data-act="side" title="${S.side?'Expand':'Collapse'} sidebar">${ico(S.side?'right':'left')}<span class="lbl">Collapse</span></button></div>`;
@@ -736,13 +745,13 @@ function poDrawer(id){
   else if(po.status==='Shipped')action=`<button class="btn primary" data-act="porecvform" data-id="${po.id}">Receive stock</button>`;
   const recv=S.recvOpen===po.id&&po.status==='Shipped';
   $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" style="width:min(640px,100%)" role="dialog" aria-label="${po.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${po.id}</h2><div class="small">${esc(b.name)} · ${esc(supName(po.supplier))}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
-  <div style="margin:14px 0">${poPill(po)}</div>${po.changeReq?`<div class="msg"><div class="k">Supplier requested changes</div>${esc(po.changeReq)}<div style="margin-top:8px"><button class="btn sm" data-act="poresolve" data-id="${po.id}">Mark resolved</button></div></div>`:''}
+  <div style="margin:14px 0">${poPill(po)}</div><div class="row" style="margin-bottom:12px"><button class="btn urgent" data-act="urgent" data-ref="${po.id}">${ico('bolt')}Contact supplier now</button></div>${po.changeReq?`<div class="msg"><div class="k">Supplier requested changes</div>${esc(po.changeReq)}<div style="margin-top:8px"><button class="btn sm" data-act="poresolve" data-id="${po.id}">Mark resolved</button></div></div>`:''}
   ${po.status!=='Received'&&po.status!=='Cancelled'?`<div class="row" style="align-items:flex-end;margin-bottom:14px">${action}${canCancel?`<button class="btn" data-act="pocancel" data-id="${po.id}">Cancel PO</button>`:''}</div>`:''}
   ${recv?`<div class="card" style="margin-bottom:14px"><h3>Units received</h3>${po.lines.map((l,k)=>`<div class="field" style="margin:8px 0 0"><label for="rc-${k}">${esc(l.name)} (${l.sku}), ordered ${l.qty}</label><input type="text" inputmode="numeric" id="rc-${k}" value="${l.qty}"></div>`).join('')}<button class="btn primary" data-act="porecv" data-id="${po.id}" style="margin-top:12px">Confirm received</button></div>`:''}
   <dl><dt>Payment terms</dt><dd>${esc(po.terms)}</dd>${po.supplierRef?`<dt>Supplier order no.</dt><dd class="mono">${esc(po.supplierRef)}</dd>`:''}${po.docs&&po.docs.length?`<dt>Documents</dt><dd>${po.docs.map((n,k)=>docBtn('po:'+po.id+':'+k,n)).join(', ')}</dd>`:''}<dt>Ordered</dt><dd>${fdateY(po.createdOn)}</dd><dt>ETA</dt><dd><input type="date" data-po="eta" data-id="${po.id}" value="${isoDate(po.eta)}" aria-label="ETA" ${po.status==='Received'||po.status==='Cancelled'?'disabled':''}> ${poLate(po)?'<span class="small down">! Late</span>':''}</dd>${po.tracking?`<dt>Shipment</dt><dd>${esc(po.carrier)} · <span class="mono">${esc(po.tracking)}</span></dd>`:''}${po.receivedOn?`<dt>Received</dt><dd>${fdateY(po.receivedOn)}</dd>`:''}</dl>
   <h3 style="margin:20px 0 8px">Items</h3><div class="tablewrap"><table style="min-width:520px"><thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Line total</th><th class="num">Received</th></tr></thead><tbody>${po.lines.map(l=>`<tr><td>${esc(l.name)}<div class="small mono">${l.sku}</div></td><td class="num">${l.qty}</td><td class="num">${usd2(l.unit)}</td><td class="num">${money0(l.qty*l.unit)}</td><td class="num">${po.status==='Received'?l.recv:'–'}</td></tr>`).join('')}<tr><td colspan="3" class="small">Freight and handling (4%)</td><td class="num">${money0(po.freight)}</td><td></td></tr><tr><td colspan="3"><b>Total</b></td><td class="num"><b>${money0(tot)}</b></td><td></td></tr></tbody></table></div>
   <h3 style="margin:20px 0 8px">Payments</h3>${pays.length?`<div class="list">${pays.map(p=>`<div><span><b>${p.kind}</b> ${money0(p.amount)}<div class="small">${p.paidOn?`Paid ${fdate(p.paidOn)} · ${esc(p.method)} ${esc(p.ref)}`:`Due ${fdate(p.due)} (${rel(p.due)})`}</div>${invLine(p)}</span><span class="row" style="gap:8px">${paySpill(p)}${p.paidOn?'':`<button class="btn sm" data-act="paymodal" data-id="${p.id}">Mark paid</button>`}</span></div>`).join('')}</div><p class="small" style="margin:8px 0 0">Paid ${money0(paid)} of ${money0(tot)}. Outstanding ${money0(tot-paid)}.</p>`:`<p class="small">${po.status==='Draft'?'Payments are scheduled when the PO is sent.':'No payments.'}</p>`}
-  <h3 style="margin:20px 0 10px">Activity</h3><ul class="timeline">${po.events.slice().sort((a,c)=>a.ago-c.ago).map(e=>`<li class="sys"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
+  ${alertsFor(po.id)}<h3 style="margin:20px 0 10px">Activity</h3><ul class="timeline">${po.events.slice().sort((a,c)=>a.ago-c.ago).map(e=>`<li class="sys"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
 }
 function payModal(id){
   const p=payments.find(x=>x.id===id);
@@ -813,6 +822,7 @@ function renderSupplier(){
   const body=tab==='pos'?supPOs(sid):tab==='invoices'?supInvoices(sid):supRequests(sid);
   return `<div class="head"><div><h1>Hi, ${esc(s.name)}</h1><p class="sub">${rq+poTodo+invTodo} thing${rq+poTodo+invTodo===1?'':'s'} need your action · you supply ${brandCount} brands</p></div></div>
   <div class="supbanner"><b>Opened from your WhatsApp link.</b> No password needed. You only see work assigned to ${esc(s.name)}.</div>
+  ${supAlerts(sid)}
   <div class="tabs" role="tablist">${T('requests','Orders, returns & cancellations',rq)}${T('pos','Purchase orders',poTodo)}${T('invoices','Invoices & payments',invTodo)}</div>${body}`;
 }
 function supPOs(sid){
@@ -947,6 +957,127 @@ function docViewer(id){
   ${inv&&inv.status==='Submitted'?`<div class="row" style="margin-top:16px"><button class="btn primary" data-act="invapprove" data-id="${inv.id}">Approve invoice</button><button class="btn" data-act="invdisputemodal" data-id="${inv.id}">Dispute</button></div>`:''}</div></div>`;
 }
 
+/* ---------- shipping address changes ---------- */
+function sampleAddr(kind,b){
+  if(kind==='return'||(kind==='order'&&b.mode==='warehouse'))return {name:kind==='return'?SUPPLIERS[b.supplier].name+' Returns':b.name+' Warehouse',line1:ri2(100,9000)+' Industrial Pkwy',line2:'Dock '+ri2(1,12),city:'Reno',state:'NV',zip:'89502',country:'US',phone:'+1 555 0142'};
+  const c=pick2(CITIES);return {name:pick2(FIRST)+' '+pick2(LAST),line1:ri2(10,9999)+' '+pick2(STREETS),line2:R2()<.3?'Apt '+ri2(1,40):'',city:c[0],state:c[1],zip:c[2],country:'US',phone:'+1 555 01'+ri2(10,99)};
+}
+const addrStr=a=>`${a.name}, ${a.line1}${a.line2?', '+a.line2:''}, ${a.city}, ${a.state} ${a.zip}`;
+const addrLabel=r=>r.type==='return'?'Return-to address':'Ship-to address';
+const addrFields=(p,a)=>`<div class="prow" style="grid-template-columns:1fr 1fr;padding:0;border:0;margin-bottom:8px"><input type="text" id="${p}-name" value="${esc(a.name)}" placeholder="Name or company" aria-label="Name or company" style="grid-column:1/-1"><input type="text" id="${p}-l1" value="${esc(a.line1)}" placeholder="Street address" aria-label="Street address" style="grid-column:1/-1"><input type="text" id="${p}-l2" value="${esc(a.line2)}" placeholder="Apt, suite, dock (optional)" aria-label="Address line 2" style="grid-column:1/-1"><input type="text" id="${p}-city" value="${esc(a.city)}" placeholder="City" aria-label="City"><input type="text" id="${p}-st" value="${esc(a.state)}" placeholder="State" aria-label="State"><input type="text" id="${p}-zip" value="${esc(a.zip)}" placeholder="ZIP" aria-label="ZIP"><input type="text" id="${p}-ctry" value="${esc(a.country)}" placeholder="Country" aria-label="Country"><input type="text" id="${p}-ph" value="${esc(a.phone)}" placeholder="Phone" aria-label="Phone" style="grid-column:1/-1"></div>`;
+function readAddr(p){const g=k=>$('#'+p+'-'+k).value.trim(),a={name:g('name'),line1:g('l1'),line2:g('l2'),city:g('city'),state:g('st'),zip:g('zip'),country:g('ctry')||'US',phone:g('ph')};return a.name&&a.line1&&a.city&&a.state&&a.zip?a:null}
+function fillNewAddr(){const kind=$('#nt').value,b=brandById(+$('#nb').value);$('#naddr').innerHTML=`<div class="field" style="margin-bottom:6px"><label>${kind==='return'?'Return-to address':'Ship-to address'}</label></div>`+addrFields('na',sampleAddr(kind,b))}
+function supAddr(r){
+  const done=r.status==='done'||r.status==='declined';
+  let h=`<div style="border-top:1px solid var(--line);padding-top:10px"><div class="small"><b>${addrLabel(r)}</b></div><div>${esc(addrStr(r.addr))}</div><div class="small">Phone ${esc(r.addr.phone)}</div>`;
+  if(r.addrPending&&!done)h+=`<div class="msg" style="margin:10px 0 0;border:1px solid var(--crit)"><div class="k down">Address changed by the brand team</div>Was: ${esc(addrStr(r.addrOld))}<br>Now: <b>${esc(addrStr(r.addr))}</b><div class="row" style="margin-top:10px"><button class="btn primary sm" data-act="supaddrok" data-id="${r.id}">Got it, using the new address</button><button class="btn sm" data-act="supaddrno" data-id="${r.id}">Already shipped to the old address</button></div></div>`;
+  if(r.addrConflict)h+=`<div class="small down" style="margin-top:8px">! You told the brand team this already shipped to the old address.</div>`;
+  return h+'</div>';
+}
+function addrBlock(r){
+  const open=r.status==='notified'||r.status==='ack';
+  return `<h3 style="margin:20px 0 8px">${addrLabel(r)}</h3><div class="msg" style="margin-bottom:8px">${esc(addrStr(r.addr))}<div class="small">Phone ${esc(r.addr.phone)}</div>${r.addrPending?'<div class="small down" style="margin-top:6px">! Changed. Waiting for the supplier to confirm the new address.</div>':''}${r.addrConflict?'<div class="small down" style="margin-top:6px">! Supplier says it already shipped to the old address. Contact them now.</div>':''}</div>${open?`<button class="btn" data-act="addrform" data-id="${r.id}">Change address</button>`:`<p class="small" style="margin:0">This request is ${r.status==='done'?'completed':'closed'}, so the address is locked. If something must change, contact the supplier now.</p>`}`;
+}
+function addrModal(id){
+  const r=requests.find(x=>x.id===id);
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Change address"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Change ${addrLabel(r).toLowerCase()}</h2><button class="btn sm" data-act="closelayer2">Close</button></div><p class="small" style="margin:0 0 12px">${r.id} · order #${r.orderNo} · ${esc(brandById(r.brandId).name)}</p>${addrFields('ae',r.addr)}
+  <div class="field"><label for="ae-why">Reason</label><select id="ae-why"><option>Customer asked for a new address</option><option>Address typo</option><option>Return location changed</option><option>Other</option></select></div>
+  <label class="tog"><input type="checkbox" id="ae-urgent" ${r.status==='ack'?'checked':''}>Alert the supplier now (portal, WhatsApp and SMS)</label>
+  <p class="small" style="margin:4px 0 12px">The supplier has to confirm the new address before they ship. Turn this on when they may already be working on it.</p>
+  <div id="ae-err" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="addrsave" data-id="${r.id}" style="width:100%">Save new address</button></div></div>`;
+}
+
+/* ---------- urgent alerts: reach a supplier in real time ---------- */
+const nowMs=()=>Date.now()+S.skew;
+const alerts=[]; let altSeq=0;
+const ESC_STEPS=[[0,'Alert sent'],[5,'SMS reminder'],[10,'Automatic phone call'],[20,'Call the backup contact']];
+const supOfRef=ref=>{const r=requests.find(x=>x.id===ref);if(r)return r.supplier;const p=purchaseOrders.find(x=>x.id===ref);return p?p.supplier:null};
+const refLabel=ref=>{const r=requests.find(x=>x.id===ref);if(r)return `${r.id} (${typeLabel(r.type,brandById(r.brandId)).toLowerCase()} for ${brandById(r.brandId).name}, order #${r.orderNo})`;const p=purchaseOrders.find(x=>x.id===ref);return p?`${p.id} (${brandById(p.brandId).name})`:'the order'};
+function sendAlert(o){const a=Object.assign({id:'ALT-'+(++altSeq),dir:'out',ref:'',template:'custom',message:'',channels:['portal','whatsapp'],sentAt:nowMs(),status:'open',reply:'',ackedAt:null,by:'You',resolved:false},o);alerts.unshift(a);return a}
+const ALERT_TPL={hold:['Hold the shipment now',l=>`URGENT: please hold ${l} and do not ship until we confirm. Reply as soon as you see this.`],address:['Address changed, please confirm',l=>`URGENT: the shipping address on ${l} changed. Please confirm you have the new address before it ships.`],cancel:['Cancel immediately',l=>`URGENT: please cancel ${l} right now if it has not shipped. Reply to confirm.`],tracking:['Need tracking now',l=>`URGENT: we need the tracking number for ${l} now. Please reply with it.`],custom:['Custom message',l=>'']};
+const aOpen=a=>!a.resolved&&((a.dir==='out'&&a.status==='open')||(a.dir==='in'&&a.status==='open'));
+const alertsOpen=()=>alerts.filter(aOpen).length;
+const mins=a=>(nowMs()-a.sentAt)/6e4;
+function aPill(a){
+  if(a.resolved)return `<span class="pill idle"><b>✓</b>Resolved</span>`;
+  if(a.dir==='in')return a.status==='open'?`<span class="pill crit"><b>!</b>Needs your reply</span>`:`<span class="pill good"><b>✓</b>Answered</span>`;
+  if(a.status==='acked')return `<span class="pill good"><b>✓</b>Seen</span>`;
+  const m=mins(a),st=ESC_STEPS.filter(s=>m>=s[0]).pop();return `<span class="pill crit"><b>!</b>No reply · ${st[1]}</span>`;
+}
+const presence=s=>S.role==='supplier'&&S.supplierId===s.id?'Active in the portal now':s.seenMin<10?`Active in the portal ${s.seenMin} min ago`:`Last in the portal ${ago(s.seenMin/60)}`;
+const waLink=(s,msg)=>`https://wa.me/${s.wa.replace(/\D/g,'')}?text=${encodeURIComponent(msg||'')}`;
+function urgentBanner(){
+  const inn=alerts.filter(a=>a.dir==='in'&&aOpen(a)), out=alerts.filter(a=>a.dir==='out'&&aOpen(a)&&mins(a)>=5);
+  if(!inn.length&&!out.length)return '';
+  return `<div class="alertbar" role="alert">${inn.map(a=>`<div class="row" style="justify-content:space-between"><span><b>${esc(supName(a.supplier))} needs a reply:</b> ${esc(a.message)}</span><button class="btn sm" data-act="openalert" data-id="${a.id}">Open</button></div>`).join('')}${out.map(a=>`<div class="row" style="justify-content:space-between"><span><b>No reply from ${esc(supName(a.supplier))}</b> after ${Math.floor(mins(a))} min: ${esc(a.message.slice(0,90))}${a.message.length>90?'…':''}</span><button class="btn sm" data-act="openalert" data-id="${a.id}">Open</button></div>`).join('')}</div>`;
+}
+function renderAlerts(){
+  const f=S.altF, list=alerts.filter(a=>!f||(f==='open'?aOpen(a):f==='acked'?a.status==='acked'&&!a.resolved:a.resolved)).sort((a,c)=>c.sentAt-a.sentAt);
+  const chip=(k,l,n)=>`<button class="chip" data-act="altf" data-k="${k}" aria-pressed="${f===k}">${l} · ${n}</button>`;
+  const supCard=s=>`<div class="card"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}</h2><span class="pill ${s.seenMin<10||(S.role==='supplier'&&S.supplierId===s.id)?'good':'idle'}"><b>${s.seenMin<10?'●':'○'}</b>${esc(presence(s))}</span></div><dl style="margin-top:10px"><dt>Main contact</dt><dd>${esc(s.contact)} · <span class="mono">${esc(s.phone)}</span></dd><dt>Backup</dt><dd>${esc(s.backup.name)} · <span class="mono">${esc(s.backup.phone)}</span></dd><dt>Hours</dt><dd>${esc(s.hours)}</dd></dl><div class="row" style="margin-top:12px"><button class="btn primary sm" data-act="urgent" data-sup="${s.id}">Send urgent alert</button><a class="btn sm" href="${waLink(s,'')}" target="_blank" rel="noopener">Open WhatsApp</a></div></div>`;
+  return `<div class="head"><div><h1>Urgent alerts</h1><p class="sub">For things that cannot wait: a shipment to stop, an address that changed, a cancellation. The supplier is alerted in the portal, on WhatsApp and by SMS, and we keep escalating until someone replies.</p></div><button class="btn urgent" data-act="urgent">${ico('bolt')}Send urgent alert</button></div>
+  <div class="cols2" style="margin-bottom:16px">${SUPPLIERS.map(supCard).join('')}</div>
+  <div class="chips">${chip('','All',alerts.length)}${chip('open','Needs attention',alerts.filter(aOpen).length)}${chip('acked','Seen by supplier',alerts.filter(a=>a.status==='acked'&&!a.resolved).length)}${chip('done','Resolved',alerts.filter(a=>a.resolved).length)}</div>
+  <div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Alert</th><th>Direction</th><th>Supplier</th><th>About</th><th>Message</th><th>Sent</th><th>Status</th><th></th></tr></thead><tbody>${list.map(a=>`<tr data-act="openalert" data-id="${a.id}" tabindex="0"><td class="name mono">${a.id}</td><td>${a.dir==='out'?'To supplier':'From supplier'}</td><td>${esc(supName(a.supplier))}</td><td class="mono">${a.ref||'–'}</td><td style="white-space:normal;min-width:220px">${esc(a.message.slice(0,110))}${a.message.length>110?'…':''}</td><td class="small" data-v="${((nowMs()-a.sentAt)/36e5).toFixed(3)}">${ago((nowMs()-a.sentAt)/36e5)}</td><td>${aPill(a)}</td><td style="text-align:right"><button class="btn sm" data-act="openalert" data-id="${a.id}">Open</button></td></tr>`).join('')}</tbody></table>${list.length?'':'<div class="empty">No alerts.</div>'}</div>`;
+}
+function alertDrawer(id){
+  const a=alerts.find(x=>x.id===id), s=SUPPLIERS[a.supplier], m=mins(a), out=a.dir==='out';
+  const ladder=ESC_STEPS.map((st,i)=>{const t=a.sentAt+st[0]*6e4,done=m>=st[0],next=!done&&(i===0||m>=ESC_STEPS[i-1][0]);
+    const lbl=i===0?`${st[1]} by ${a.channels.map(c=>({portal:'portal alert',whatsapp:'WhatsApp',sms:'SMS',call:'phone call'}[c])).join(', ')}`:i===3?`${st[1]}: ${s.backup.name}`:st[1];
+    return `<li class="${done?'':'sys'}"><div>${esc(lbl)}<div class="small">${st[0]===0?'Right away':'After '+st[0]+' min with no reply'} · ${a.status!=='open'&&!done?'not needed':done?'done':next?`<span data-cd="${t}">…</span>`:'waiting'}</div></div></li>`}).join('');
+  $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" role="dialog" aria-label="${a.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${a.id}</h2><div class="small">${out?'To':'From'} ${esc(s.name)}${a.ref?' · '+a.ref:''}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div style="margin:14px 0">${aPill(a)}</div>
+  <div class="msg"><div class="k">${out?'Your message':'Their message'} · ${ago((nowMs()-a.sentAt)/36e5)}</div>${esc(a.message)}</div>
+  ${a.reply?`<div class="msg" style="border:1px solid var(--good)"><div class="k">${out?'Supplier reply':'Your reply'}${a.ackedAt?' · '+ago((nowMs()-a.ackedAt)/36e5):''}</div>${esc(a.reply)}</div>`:''}
+  ${a.ref?`<p class="small" style="margin:0 0 12px">About <button class="link mono" data-act="${requests.some(r=>r.id===a.ref)?'openreq':'openpo'}" data-id="${a.ref}">${a.ref}</button></p>`:''}
+  <div class="row" style="margin-bottom:16px">${!a.resolved?`<button class="btn primary" data-act="altresolve" data-id="${a.id}">Mark resolved</button>`:''}<a class="btn" href="${waLink(s,out?a.message:'')}" target="_blank" rel="noopener">Open WhatsApp</a>${out&&a.status==='open'?`<button class="btn" data-act="altresend" data-id="${a.id}">Resend now</button><button class="btn" data-act="altskip" data-id="${a.id}">Skip ahead 5 min (demo)</button>`:''}</div>
+  ${out?`<h3 style="margin:0 0 10px">Escalation</h3><ul class="timeline">${ladder}</ul><p class="small" style="margin:10px 0 0">${a.status!=='open'?'Escalation stopped because the supplier replied.':'We keep escalating until the supplier replies in the portal or on WhatsApp.'}</p>`:`<p class="small">Reply here or by WhatsApp. Marking it resolved closes the alert.</p>`}
+  <h3 style="margin:20px 0 8px">How to reach them</h3><dl><dt>Main contact</dt><dd>${esc(s.contact)} · <span class="mono">${esc(s.phone)}</span></dd><dt>Backup</dt><dd>${esc(s.backup.name)} · <span class="mono">${esc(s.backup.phone)}</span></dd><dt>Hours</dt><dd>${esc(s.hours)}</dd><dt>In the portal</dt><dd>${esc(presence(s))}</dd></dl></div></div>`;
+}
+function urgentModal(ctx){
+  ctx=ctx||{};
+  const sid=ctx.ref?supOfRef(ctx.ref):(ctx.sup!=null?+ctx.sup:S.supplierId), tpl=ctx.tpl||(ctx.ref?'hold':'custom');
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Send urgent alert"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Send urgent alert</h2><button class="btn sm" data-act="closelayer2">Close</button></div>
+  <div class="field"><label for="us">Supplier</label><select id="us" ${ctx.ref?'disabled':''}>${SUPPLIERS.map(s=>`<option value="${s.id}" ${s.id===sid?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+  <div id="uinfo" class="small" style="margin:-4px 0 12px"></div>
+  ${ctx.ref?`<p class="small" style="margin:0 0 12px">About <b class="mono">${ctx.ref}</b></p>`:''}
+  <input type="hidden" id="uref" value="${ctx.ref||''}">
+  <div class="field"><label for="ut">What is this about?</label><select id="ut">${Object.keys(ALERT_TPL).map(k=>`<option value="${k}" ${k===tpl?'selected':''}>${ALERT_TPL[k][0]}</option>`).join('')}</select></div>
+  <div class="field"><label for="um">Message</label><textarea id="um" rows="4"></textarea></div>
+  <div class="field"><label>How to reach them</label><label class="tog"><input type="checkbox" checked disabled>Live alert in the supplier portal</label><label class="tog"><input type="checkbox" id="uc-wa" checked>WhatsApp message</label><label class="tog"><input type="checkbox" id="uc-sms" checked>SMS</label><label class="tog"><input type="checkbox" id="uc-call">Phone call right away (otherwise we call after 10 minutes with no reply)</label></div>
+  <p class="small" style="margin:0 0 12px">No reply in 5 minutes: SMS reminder. 10 minutes: automatic phone call. 20 minutes: we call the backup contact.</p>
+  <div id="uerr" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="sendurgent" style="width:100%">Send urgent alert</button></div></div>`;
+  fillUrgent();
+}
+function fillUrgent(fromTpl){
+  const s=SUPPLIERS[+$('#us').value], ref=$('#uref').value, t=$('#ut').value;
+  $('#uinfo').textContent=`${presence(s)}. Hours: ${s.hours}.`;
+  if(fromTpl||!$('#um').value)$('#um').value=ALERT_TPL[t][1](ref?refLabel(ref):'the order');
+}
+function supAlerts(sid){
+  const mine=alerts.filter(a=>a.dir==='out'&&a.supplier===sid&&a.status==='open'&&!a.resolved);
+  return mine.map(a=>`<div class="alertbar" role="alert" style="margin-bottom:12px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="small down"><b>URGENT</b> · from ${esc(a.by)} · ${ago((nowMs()-a.sentAt)/36e5)}${a.ref?' · '+a.ref:''}</div><div style="margin-top:4px;font-size:15px"><b>${esc(a.message)}</b></div></div></div><div class="row" style="margin-top:10px"><button class="btn primary" data-act="supack" data-id="${a.id}" data-reply="Seen. On it.">Seen, on it</button><button class="btn" data-act="supack" data-id="${a.id}" data-reply="Need 30 minutes, will update you.">Need 30 minutes</button><button class="btn" data-act="supack" data-id="${a.id}" data-reply="Please call me.">Please call me</button></div><div class="row" style="margin-top:8px"><input type="text" id="ar-${a.id}" placeholder="Or type a reply" aria-label="Reply" style="flex:1;min-width:200px"><button class="btn" data-act="supreply" data-id="${a.id}">Send reply</button></div></div>`).join('');
+}
+function supUrgentModal(){
+  const sid=S.supplierId, refs=[...requests.filter(r=>r.supplier===sid&&(r.status==='notified'||r.status==='ack')).map(r=>r.id),...purchaseOrders.filter(p=>p.supplier===sid&&!['Draft','Cancelled','Received'].includes(p.status)).map(p=>p.id)];
+  $('#layer').innerHTML=`<div class="overlay center" data-act="closelayer"><div class="panel" role="dialog" aria-label="Contact the brand team urgently"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="font-size:18px">Contact the brand team urgently</h2><button class="btn sm" data-act="closelayer2">Close</button></div><p class="small" style="margin:0 0 14px">This alerts the ops team right away. Urgent line: <span class="mono">+1 555 0100</span>, 7am to 9pm Pacific.</p>
+  <div class="field"><label for="su-ref">About</label><select id="su-ref"><option value="">Something else</option>${refs.map(r=>`<option>${r}</option>`).join('')}</select></div>
+  <div class="field"><label for="su-msg">What do you need?</label><textarea id="su-msg" rows="4" placeholder="For example: the carrier pickup moved, or the address looks wrong."></textarea></div>
+  <div id="su-err" class="small down" style="min-height:18px"></div><button class="btn primary" data-act="supsendurgent" style="width:100%">Send to the ops team</button></div></div>`;
+}
+setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(el=>{const ms=+el.dataset.cd-nowMs();el.textContent=ms<=0?'now':'in '+Math.floor(ms/6e4)+':'+String(Math.floor(ms/1000)%60).padStart(2,'0')})},1000);
+function alertsFor(ref){const l=alerts.filter(a=>a.ref===ref);return l.length?`<h3 style="margin:20px 0 8px">Urgent alerts</h3><div class="list">${l.map(a=>`<div><span><button class="link mono" data-act="openalert" data-id="${a.id}">${a.id}</button> <span class="small">${esc(a.message.slice(0,80))}${a.message.length>80?'…':''}</span></span>${aPill(a)}</div>`).join('')}</div>`:''}
+/* sample data */
+(function(){
+  const old=requests.find(r=>r.status==='ack');
+  if(old){const prev=Object.assign({},old.addr);old.addr=Object.assign({},old.addr,{line1:'88 Elm Court',line2:'',city:'Boulder',state:'CO',zip:'80301'});old.addrOld=prev;old.addrPending=true;old.addrHistory.unshift({at:Date.now()-2*36e5,by:'Rina Castillo',old:prev,new:Object.assign({},old.addr),reason:'Customer asked for a new address'});old.events.unshift({sys:true,t:'Shipping address changed by Rina Castillo',ago:2})}
+  const cx=requests.find(r=>r.id==='CXL-1046')||requests.find(r=>r.type==='cancellation'), po1=purchaseOrders.find(p=>p.id==='PO-2409')||purchaseOrders.find(p=>poLate(p)), po2=purchaseOrders.find(p=>p.id==='PO-2412')||purchaseOrders.find(p=>p.status==='Shipped');
+  sendAlert({supplier:cx.supplier,ref:cx.id,template:'cancel',message:ALERT_TPL.cancel[1](refLabel(cx.id)),channels:['portal','whatsapp','sms'],sentAt:Date.now()-4*6e4,by:'Rina Castillo'});
+  if(po1)sendAlert({supplier:po1.supplier,ref:po1.id,template:'tracking',message:ALERT_TPL.tracking[1](refLabel(po1.id)),sentAt:Date.now()-3*36e5,status:'acked',ackedAt:Date.now()-170*6e4,reply:'On it. Shipping Friday, tracking to follow.',by:'Ben Hoang'});
+  if(po2)sendAlert({dir:'in',supplier:po2.supplier,ref:po2.id,message:'The carrier pickup moved to tomorrow morning. Can we change the delivery window?',channels:['portal'],sentAt:Date.now()-12*6e4,by:SUPPLIERS[po2.supplier].contact});
+  alerts.sort((a,c)=>c.sentAt-a.sentAt);
+})();
+
 /* ---------- ops requests & inventory ---------- */
 function renderRequests(){
   const all=requests.slice().sort((a,b)=>a.hoursAgo-b.hoursAgo);
@@ -994,7 +1125,7 @@ function supCard(r){
   }
   return `<div class="card req"><div class="top"><div><div class="row" style="gap:8px"><b>${r.id}</b><span class="tag">${typeLabel(r.type,b)}</span><span class="tag">${esc(b.name)}</span></div><div class="small" style="margin-top:4px">Order #${r.orderNo} · requested ${ago(r.hoursAgo)} by ${esc(r.by)}</div></div>${spill(r)}</div>
   <div><b>${it.qty} × ${esc(it.name)}</b> <span class="mono small">${it.sku}</span><div class="small">Reason: ${esc(r.reason)}${r.type==='return'?'':''}</div>${r.type==='return'&&r.status==='ack'?`<div class="small" style="margin-top:4px">Upload the label here. We email it to the customer and attach it to the order in Shopify.</div>`:''}${od&&r.status==='notified'?'<div class="small down" style="margin-top:4px">! This was requested more than 24 hours ago.</div>':''}</div>
-  <div class="acts">${action}</div></div>`;
+  ${supAddr(r)}<div class="acts">${action}</div></div>`;
 }
 
 /* ---------- overlays ---------- */
@@ -1003,13 +1134,14 @@ function reqDrawer(id){
   const verb={order:b.mode==='warehouse'?'replenishment order':'order',return:'return',cancellation:'cancellation'}[r.type];
   const ev=r.events.slice().sort((a,c)=>a.ago-c.ago);
   $('#layer').innerHTML=`<div class="overlay" data-act="closelayer"><div class="panel" role="dialog" aria-label="Request ${r.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="font-size:18px">${r.id}</h2><div class="small">${typeLabel(r.type,b)} · ${esc(b.name)}</div></div><button class="btn sm" data-act="closelayer2">Close</button></div>
-  <div style="margin:14px 0">${spill(r)}</div>
+  <div style="margin:14px 0">${spill(r)}</div><div class="row" style="margin-bottom:12px"><button class="btn urgent" data-act="urgent" data-ref="${r.id}">${ico('bolt')}Contact supplier now</button></div>
   <dl><dt>Order</dt><dd class="mono">#${r.orderNo}</dd><dt>Item</dt><dd>${r.items[0].qty} × ${esc(r.items[0].name)} <span class="mono small">${r.items[0].sku}</span></dd><dt>Reason</dt><dd>${esc(r.reason)}</dd><dt>Supplier</dt><dd>${esc(s.name)}</dd>${r.carrier?`<dt>Carrier</dt><dd>${esc(r.carrier)}</dd><dt>Tracking</dt><dd class="mono">${esc(r.tracking)}</dd>`:''}${r.label?`<dt>Label</dt><dd>${docBtn('req:'+r.id,r.label)}</dd>`:''}${r.note?`<dt>Supplier note</dt><dd>${esc(r.note)}</dd>`:''}</dl>
+  ${addrBlock(r)}
   <h3 style="margin:20px 0 8px">What the supplier received</h3>
   <div class="msg"><div class="k">WhatsApp</div>New ${verb} for ${esc(b.name)}, order #${r.orderNo}. ${r.items[0].qty} × ${esc(r.items[0].name)}. Open to respond: ${link}</div>
   <div class="msg"><div class="k">Email to ${esc(s.email)}</div><b>[Brand Hub] ${typeLabel(r.type,b)} ${r.id} · ${esc(b.name)}</b><br>Please acknowledge and ${r.type==='return'?'upload the return label and tracking number':r.type==='order'?'add tracking once shipped':'confirm the order has not shipped'}. ${link}</div>
   ${r.status==='notified'||r.status==='ack'?`<button class="btn" data-act="remind" data-id="${r.id}">Send reminder</button>`:''}
-  <h3 style="margin:22px 0 10px">Activity</h3><ul class="timeline">${ev.map(e=>`<li class="${e.sys?'sys':''}"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
+  ${alertsFor(r.id)}<h3 style="margin:22px 0 10px">Activity</h3><ul class="timeline">${ev.map(e=>`<li class="${e.sys?'sys':''}"><div>${esc(e.t)}<div class="small">${ago(e.ago)}</div></div></li>`).join('')}</ul></div></div>`;
 }
 function newReqModal(preBrand,preNo){
   const b=brandById(preBrand!=null?preBrand:S.page==='brand'?S.brandId:0);
@@ -1021,6 +1153,7 @@ function newReqModal(preBrand,preNo){
   <div class="field"><label for="ns">Item</label><select id="ns"></select></div>
   <div class="field"><label for="nq">Quantity</label><input type="text" id="nq" value="1" inputmode="numeric"></div>
   <div class="field"><label for="nr">Reason</label><select id="nr"><option>Item arrived damaged</option><option>Wrong item sent</option><option>Customer changed their mind</option><option>Customer order</option><option>Restock for upcoming campaign</option></select></div>
+  <div id="naddr"></div>
   <div id="nerr" class="small down" style="min-height:18px"></div>
   <button class="btn primary" data-act="createreq" style="width:100%">Send to supplier</button></div></div>`;
   fillNewReq();
@@ -1029,6 +1162,7 @@ function fillNewReq(){
   const b=brandById(+$('#nb').value);
   $('#ns').innerHTML=b.skus.map((s,i)=>`<option value="${i}">${esc(s.name)} (${s.sku})</option>`).join('');
   $('#nbinfo').textContent=`${supName(b.supplier)} will be notified by email and WhatsApp. ${b.mode==='dropship'?'This brand ships direct to customers.':'This brand ships to our warehouse.'}`;
+  fillNewAddr();
 }
 
 /* ---------- actions ---------- */
@@ -1108,6 +1242,35 @@ const ACTIONS={
   },
   viewdoc:e=>docViewer(e.dataset.id),
   doctype:e=>{S.docType=e.dataset.k;render()},
+  urgent:e=>urgentModal({ref:e.dataset.ref,sup:e.dataset.sup}),
+  sendurgent:()=>{
+    const m=$('#um').value.trim(),ref=$('#uref').value,sid=ref?supOfRef(ref):+$('#us').value;
+    if(!m){$('#uerr').textContent='Write the message the supplier will see.';return}
+    const ch=['portal'];if($('#uc-wa').checked)ch.push('whatsapp');if($('#uc-sms').checked)ch.push('sms');if($('#uc-call').checked)ch.push('call');
+    const a=sendAlert({supplier:sid,ref,template:$('#ut').value,message:m,channels:ch});
+    render();alertDrawer(a.id);toast('Urgent alert sent to '+supName(sid));
+  },
+  openalert:e=>alertDrawer(e.dataset.id),
+  altf:e=>{S.altF=e.dataset.k;render()},
+  altresolve:e=>{const a=alerts.find(x=>x.id===e.dataset.id);a.resolved=true;render();alertDrawer(a.id);toast('Marked resolved')},
+  altresend:e=>{const a=alerts.find(x=>x.id===e.dataset.id);a.sentAt=nowMs();render();alertDrawer(a.id);toast('Alert sent again on '+a.channels.length+' channels')},
+  altskip:e=>{S.skew+=5*6e4;render();alertDrawer(e.dataset.id);toast('Skipped ahead 5 minutes')},
+  supack:e=>{const a=alerts.find(x=>x.id===e.dataset.id);a.status='acked';a.ackedAt=nowMs();a.reply=e.dataset.reply;render();toast('Sent. The brand team can see your reply.')},
+  supreply:e=>{const v=$('#ar-'+e.dataset.id).value.trim();if(!v){toast('Type a reply first');return}const a=alerts.find(x=>x.id===e.dataset.id);a.status='acked';a.ackedAt=nowMs();a.reply=v;render();toast('Sent. The brand team can see your reply.')},
+  supurgent:()=>supUrgentModal(),
+  supsendurgent:()=>{const m=$('#su-msg').value.trim();if(!m){$('#su-err').textContent='Tell us what you need.';return}sendAlert({dir:'in',supplier:S.supplierId,ref:$('#su-ref').value,message:m,channels:['portal'],by:SUPPLIERS[S.supplierId].contact});render();toast('Sent. The ops team is alerted right now.')},
+  addrform:e=>addrModal(e.dataset.id),
+  addrsave:e=>{
+    const r=requests.find(x=>x.id===e.dataset.id),a=readAddr('ae');
+    if(!a){$('#ae-err').textContent='Complete the address: name, street, city, state and ZIP.';return}
+    const why=$('#ae-why').value,urgent=$('#ae-urgent').checked;
+    r.addrOld=r.addr;r.addr=a;r.addrPending=true;r.addrConflict=false;r.addrHistory.unshift({at:Date.now(),by:'You',old:r.addrOld,new:a,reason:why});
+    r.events.unshift({sys:true,t:`Shipping address changed (${why}): ${addrStr(a)}`,ago:0});
+    if(urgent)sendAlert({supplier:r.supplier,ref:r.id,template:'address',message:`URGENT: the address on ${r.id} (order #${r.orderNo}) changed. New address: ${addrStr(a)}. Please confirm before it ships.`,channels:['portal','whatsapp','sms']});
+    render();reqDrawer(r.id);toast(urgent?'Address changed. Supplier alerted now.':'Address changed. The supplier must confirm it.');
+  },
+  supaddrok:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.events.unshift({sys:false,t:'Supplier confirmed the new address',ago:0});alerts.filter(a=>a.ref===r.id&&a.template==='address'&&a.status==='open').forEach(a=>{a.status='acked';a.ackedAt=nowMs();a.reply='Confirmed the new address.'});render();toast('Thanks. The brand team can see you confirmed.')},
+  supaddrno:e=>{const r=requests.find(x=>x.id===e.dataset.id);r.addrPending=false;r.addrConflict=true;r.events.unshift({sys:false,t:'Supplier says it already shipped to the old address',ago:0});sendAlert({dir:'in',supplier:r.supplier,ref:r.id,message:`${r.id} already shipped to the old address (${addrStr(r.addrOld)}). Please advise.`,channels:['portal'],by:SUPPLIERS[r.supplier].contact});render();toast('The ops team is alerted right now.')},
   suptab:e=>{S.supTab=e.dataset.t;render()},
   supconfirm:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),no=$('#so-'+po.id).value.trim(),d=$('#sd-'+po.id).value.split('-').map(Number);po.status='Confirmed';if(no)po.supplierRef=no;if(d.length===3&&!d.some(isNaN))po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,`Supplier confirmed${no?' (order '+no+')':''}, arrival ${fdate(po.eta)}`);render();toast('PO confirmed. The brand team is notified.')},
   supprod:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='In production';poEvent(po,'Supplier started production');render();toast('Marked in production')},
@@ -1133,8 +1296,9 @@ const ACTIONS={
     const b=brandById(+$('#nb').value), no=$('#no').value.replace(/\D/g,''), q=parseInt($('#nq').value,10);
     if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
     if(!(q>0)){$('#nerr').textContent='Quantity must be 1 or more.';return}
+    const ad=readAddr('na');if(!ad){$('#nerr').textContent='Complete the address: name, street, city, state and ZIP.';return}
     const sk=b.skus[+$('#ns').value];
-    const r=mkReq({type:$('#nt').value,brandId:b.id,supplier:b.supplier,orderNo:no,items:[{sku:sk.sku,name:sk.name,qty:q}],reason:$('#nr').value,by:'You',hoursAgo:0});
+    const r=mkReq({type:$('#nt').value,brandId:b.id,supplier:b.supplier,orderNo:no,items:[{sku:sk.sku,name:sk.name,qty:q}],reason:$('#nr').value,addr:ad,by:'You',hoursAgo:0});
     requests.unshift(r);render();reqDrawer(r.id);toast('Supplier notified by email and WhatsApp');
   },
   /* supplier */
@@ -1180,6 +1344,9 @@ document.addEventListener('change',ev=>{
   else if(t.id==='invmode'){S.invBrand=t.value;render()}
   else if(t.id==='tass'){S.tAss=t.value;S.tShow=40;render()}
   else if(t.id==='nb')fillNewReq();
+  else if(t.id==='nt')fillNewAddr();
+  else if(t.id==='us')fillUrgent();
+  else if(t.id==='ut')fillUrgent(true);
   else if(t.id==='npb')fillPoRows();
   else if(t.id==='docsup'){S.docSup=t.value;render()}
   else if(t.id==='iv-pay'){const pp=payments.find(x=>x.id===t.value);$('#iv-amt').value=pp.amount.toFixed(2);$('#iv-due').value=isoDate(pp.due)}
@@ -1205,8 +1372,8 @@ document.addEventListener('mousemove',ev=>{const t=ev.target.closest&&ev.target.
 
 function render(){
   renderTop();renderSide();
-  const PAGES={docs:renderDocs,pos:renderPOs,payments:renderPayments,brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
-  $('#app').innerHTML=S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)();
+  const PAGES={alerts:renderAlerts,docs:renderDocs,pos:renderPOs,payments:renderPayments,brand:renderBrand,requests:renderRequests,inventory:renderInventory,opsHome:renderOpsHome,psHome:renderPsHome,tracker:renderTracker,activity:renderActivity,portfolio:renderPortfolio};
+  $('#app').innerHTML=(S.role==='ops'&&S.page!=='alerts'?urgentBanner():'')+(S.role==='supplier'?renderSupplier():(PAGES[S.page]||renderPortfolio)());
   $('#layer').innerHTML='';
   enhanceTables($('#app'),'A');
 }
