@@ -166,6 +166,28 @@ a.btn{text-decoration:none;display:inline-block;color:var(--ink)}
 .cmsg.internal{background:color-mix(in srgb,var(--warn) 13%,var(--surface));border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
 .cmsg .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:4px}
 .mention{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 3px;font-weight:600}
+details.sec{border-top:1px solid var(--line);margin-top:14px}
+details.sec>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:10px 0}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .12s;margin:0 4px 0 2px;flex:none}
+details.sec[open]>summary::before{transform:rotate(45deg)}
+details.sec>summary h3{margin:0!important}
+details.sec>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.secbody{padding-bottom:6px}
+.bellwrap{position:relative}
+.iconbtn{position:relative}
+.badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--crit);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;line-height:1}
+.bellpanel{position:absolute;right:0;top:calc(100% + 8px);width:min(400px,calc(100vw - 24px));max-height:72vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:30}
+.bph{display:flex;gap:10px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+.bpl{overflow-y:auto}
+.bitem{all:unset;box-sizing:border-box;display:flex;gap:10px;width:100%;padding:10px 12px;cursor:pointer;border-top:1px solid var(--line)}
+.bitem:hover,.bitem:focus-visible{background:var(--wash)}
+.bitem.unread{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.bitem b{display:block;font-weight:600}
+.bitem .bl{display:block;overflow-wrap:anywhere}
+.bdot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--accent));margin-top:6px;flex:none}
+.bitem:not(.unread) .bdot{opacity:.35}
+@media (max-width:600px){.bellpanel{position:fixed;left:12px;right:12px;top:60px;width:auto}}
 </style>
 
 <div class="shell">
@@ -274,7 +296,7 @@ function mkReq(o){const r=Object.assign({id:null,status:'notified',tracking:'',c
 })();
 
 /* ---------- state & helpers ---------- */
-const S={openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
+const S={secs:{},bellOpen:false,bellTab:'all',me:'Lynn',readOps:{},readSup:{},openThreads:{},skew:0,altF:'',docType:'',docSup:'',docQ:'',poBrand:'',poRange:'all',poFrom:'',poTo:'',poBasis:'ordered',poAllBrands:false,supTab:'requests',payFilter:'',paySup:'',poSt:'',poSup:'',recvOpen:null,side:false,sideOpen:false,tAss:'',tShow:40,role:'ops',supplierId:0,page:'portfolio',brandId:null,tab:'overview',q:'',mode:'',supplier:'',health:'',sort:'revenue',dir:-1,show:20,rq:'',rtype:'',rsup:'',invQ:'',invBrand:'',invRisk:'risk'};
 try{S.side=localStorage.getItem('bh-side')==='1'}catch(e){}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -318,7 +340,7 @@ function spark(vals){
 }
 
 /* ---------- top bar ---------- */
-const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/>',card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>'};
+const ICONS={grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',box:'<path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 5.5a3 3 0 010 5.5M18 14.5c2 .8 3.5 2.8 3.5 5.5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',bell:'<path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',doc:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/>',card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>'};
 const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents',alerts:'Ops team · Urgent alerts'};
 function renderTop(){
@@ -326,6 +348,7 @@ function renderTop(){
   $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i>Brand Hub</div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
   <span class="spacer"></span>
   ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
+  ${bellHtml()}
   ${ops?`<button class="btn urgent" data-act="urgent">${ico('bolt')}Urgent</button>`:`<button class="btn urgent" data-act="supurgent">${ico('bolt')}Contact brand team</button>`}
   <div class="seg" role="group" aria-label="View as"><button data-act="role" data-r="ops" aria-pressed="${ops}">Team view</button><button data-act="role" data-r="supplier" aria-pressed="${!ops}">Supplier view</button></div>`;
 }
@@ -925,7 +948,7 @@ document.addEventListener('click',ev=>{
   const t=b.closest('table'),c=+b.dataset.c,st=GSORT[t._key];
   GSORT[t._key]=st&&st.c===c?{c,dir:-st.dir}:{c,dir:b.closest('th').classList.contains('num')?-1:1};applyG(t);
 });
-new MutationObserver(()=>enhanceTables($('#layer'),'L')).observe($('#layer'),{childList:true});
+new MutationObserver(()=>{enhanceSections($('#layer'));enhanceTables($('#layer'),'L')}).observe($('#layer'),{childList:true});
 
 /* ---------- documents uploaded by suppliers ---------- */
 const DOC_TYPES={label:'Return label',invoice:'Invoice',packing:'Packing list'};
@@ -1140,6 +1163,83 @@ function payDrawer(id){
   ${docsSection(docs,'pay:'+p.id,'No invoice file or packing list yet.')}</div></div>`;
 }
 
+/* ---------- collapsible sections inside the side windows ---------- */
+function enhanceSections(root){
+  root.querySelectorAll('.panel').forEach(panel=>{
+    const lab=panel.getAttribute('aria-label')||'', kind=/^PO-/.test(lab)?'po':/^PAY-/.test(lab)?'pay':/^ALT-/.test(lab)?'alert':/^(Request )?(RET|ORD|CXL)-/.test(lab)?'req':'';
+    if(!kind)return;
+    [...panel.querySelectorAll('h3')].forEach(h=>{
+      const par=h.parentElement;
+      if(!par)return;
+      if(par.classList.contains('card')||par.classList.contains('msg')||par.closest('.card')||par.closest('.msg'))return;
+      if(par!==panel&&par.parentElement!==panel)return;
+      const body=document.createElement('div');body.className='secbody';
+      let n=h.nextSibling;while(n&&!(n.nodeType===1&&(n.tagName==='H3'||n.tagName==='DETAILS'||n.querySelector(':scope > h3')))){const nx=n.nextSibling;body.appendChild(n);n=nx}
+      const d=document.createElement('details');d.className='sec';
+      const key=kind+':'+h.textContent.replace(/\(\d+\)/,'').trim().toLowerCase();
+      d.dataset.sec=key;d.open=S.secs[key]!==false;
+      const sm=document.createElement('summary');par.insertBefore(d,h);sm.appendChild(h);d.appendChild(sm);d.appendChild(body);
+    });
+  });
+}
+document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.sec)S.secs[d.dataset.sec]=d.open},true);
+/* ---------- notification bell ---------- */
+const BELL_KIND={alert:'crit',reply:'good',message:'info',mention:'info',invoice:'warn',payment:'crit',po:'warn',doc:'info',request:'warn'};
+function notifsOps(){
+  const L=[], add=(id,kind,title,text,at,act,data,read)=>L.push({id,kind,title,text:text||'',at,act,data,read:!!read||!!S.readOps[id]});
+  alerts.forEach(a=>{
+    if(a.dir==='in'&&!a.resolved)add('alert-in:'+a.id,'alert',`${supName(a.supplier)} needs a reply`,a.message,a.sentAt,'openalert',{id:a.id});
+    if(a.dir==='out'&&a.status==='acked'&&a.reply)add('alert-ack:'+a.id,'reply',`${supName(a.supplier)} replied to ${a.id}`,a.reply,a.ackedAt,'openalert',{id:a.id});
+    if(a.dir==='out'&&a.status==='open'&&!a.resolved&&mins(a)>=5)add('alert-no:'+a.id,'alert',`No reply from ${supName(a.supplier)} after ${Math.floor(mins(a))} min`,a.message,a.sentAt+5*6e4,'openalert',{id:a.id});
+  });
+  comments.forEach(c=>{
+    if(c.role==='supplier')add('cm:'+c.id,'message',`${c.by} replied on ${c.ref}`,c.text,c.at,'openref',{ref:c.ref},c.readByOps);
+    else if(c.kind==='internal'&&c.text.includes('@'+S.me))add('mention:'+c.id,'mention',`${c.by} mentioned you on ${c.ref}`,c.text,c.at,'openref',{ref:c.ref});
+  });
+  invoices.forEach(i=>{if(i.status==='Submitted')add('inv:'+i.id,'invoice',`${supName(i.supplier)} submitted invoice ${i.number}`,`${money0(i.amount)} for ${i.poId}${i.amount!==i.expected?' · differs from the PO':''}`,i.at||T0-i.ago*36e5,'openpay',{id:i.paymentId})});
+  allDocs().forEach(d=>{if((d.type==='label'||d.type==='packing')&&docAgo(d)<72)add('doc:'+d.id,'doc',`${supName(d.supplier)} uploaded a ${DOC_TYPES[d.type].toLowerCase()}`,`${d.name} · ${d.ref}`,d.at,'viewdoc',{id:d.id})});
+  requests.forEach(r=>{
+    if(r.addrConflict)add('addrc:'+r.id,'alert',`${r.id} shipped to the old address`,addrStr(r.addrOld||r.addr),T0,'openreq',{id:r.id});
+    if(isOverdue(r))add('reqod:'+r.id,'request',`${r.id} has no supplier reply`,`${supName(r.supplier)} · requested ${ago(r.hoursAgo)}`,T0-(r.hoursAgo-24)*36e5,'openreq',{id:r.id});
+  });
+  payments.forEach(p=>{if(payStatus(p)==='overdue')add('payod:'+p.id,'payment',`Payment ${p.id} is overdue`,`${money0(p.amount)} to ${supName(p.supplier)} · due ${fdate(p.due)}`,+p.due,'openpay',{id:p.id})});
+  purchaseOrders.forEach(po=>{
+    if(poLate(po))add('polate:'+po.id,'po',`${po.id} is late`,`${esc(brandById(po.brandId).name)} · ETA ${fdate(po.eta)} (${rel(po.eta)})`,+po.eta,'openpo',{id:po.id});
+    if(po.changeReq)add('pochg:'+po.id,'po',`Change requested on ${po.id}`,po.changeReq,T0,'openpo',{id:po.id});
+  });
+  return L.sort((a,b)=>b.at-a.at);
+}
+function notifsSup(sid){
+  const L=[], add=(id,kind,title,text,at,act,data,read)=>L.push({id,kind,title,text:text||'',at,act,data,read:!!read||!!S.readSup[id]});
+  alerts.forEach(a=>{if(a.dir==='out'&&a.supplier===sid&&a.status==='open'&&!a.resolved)add('s-alert:'+a.id,'alert','Urgent message from the brand team',a.message,a.sentAt,'top',{})});
+  requests.forEach(r=>{if(r.supplier===sid){
+    if(r.status==='notified')add('s-req:'+r.id,'request',`New ${typeLabel(r.type,brandById(r.brandId)).toLowerCase()} ${r.id}`,`${brandById(r.brandId).name} · order #${r.orderNo}`,T0-r.hoursAgo*36e5,'suptab',{t:'requests'});
+    if(r.addrPending&&r.status!=='done')add('s-addr:'+r.id,'alert',`Address changed on ${r.id}`,`Confirm the new address before it ships`,r.addrHistory[0]?r.addrHistory[0].at:T0,'suptab',{t:'requests'});
+  }});
+  purchaseOrders.forEach(po=>{if(po.supplier===sid&&po.status==='Sent')add('s-po:'+po.id,'po',`New purchase order ${po.id}`,`${brandById(po.brandId).name} · ${money0(poTotal(po))}`,+po.sentOn,'suptab',{t:'pos'})});
+  comments.forEach(c=>{if(c.kind==='shared'&&c.role!=='supplier'&&supOfRef(c.ref)===sid)add('s-cm:'+c.id,'message',`Message from the brand team on ${c.ref}`,c.text,c.at,'supthread',{ref:c.ref},c.readBySupplier)});
+  invoices.forEach(i=>{if(i.supplier===sid&&(i.status==='Approved'||i.status==='Disputed')&&(i.reviewedAt||i.ago<96))add('s-inv:'+i.id,i.status==='Approved'?'reply':'alert',`Invoice ${i.number} ${i.status.toLowerCase()}`,i.status==='Disputed'?i.reviewNote:`${money0(i.amount)} for ${i.poId}`,i.reviewedAt||T0-Math.max(1,i.ago-3)*36e5,'suptab',{t:'invoices'})});
+  payments.forEach(p=>{if(p.supplier===sid&&p.paidOn&&p.paidOn>=addD(TODAY,-14))add('s-pay:'+p.id,'reply',`Payment of ${money0(p.amount)} was sent`,`${p.method} ${p.ref} · ${p.poId}`,+p.paidOn,'suptab',{t:'invoices'})});
+  return L.sort((a,b)=>b.at-a.at);
+}
+const curNotifs=()=>S.role==='ops'?notifsOps():notifsSup(S.supplierId);
+function bellHtml(){
+  const L=curNotifs(), un=L.filter(n=>!n.read).length, show=(S.bellTab==='unread'?L.filter(n=>!n.read):L).slice(0,40);
+  return `<div class="bellwrap"><button class="iconbtn" data-act="bell" aria-label="Notifications, ${un} unread" aria-expanded="${S.bellOpen}">${ico('bell')}${un?`<span class="badge">${un>99?'99+':un}</span>`:''}</button>${S.bellOpen?`<div class="bellpanel" role="dialog" aria-label="Notifications"><div class="bph"><b>Notifications</b>${S.role==='ops'?`<label class="small" style="margin-left:auto">For <select id="bme" aria-label="Show mentions for">${TEAM.map(n=>`<option ${n===S.me?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`:'<span style="margin-left:auto"></span>'}<button class="link" data-act="bellall">Mark all read</button></div><div class="row" style="gap:6px;padding:8px 12px"><button class="chip" data-act="belltab" data-k="all" aria-pressed="${S.bellTab!=='unread'}">All · ${L.length}</button><button class="chip" data-act="belltab" data-k="unread" aria-pressed="${S.bellTab==='unread'}">Unread · ${un}</button></div><div class="bpl">${show.length?show.map(n=>`<button class="bitem ${n.read?'':'unread'}" data-act="bellgo" data-id="${esc(n.id)}"><span class="bdot ${BELL_KIND[n.kind]||'info'}"></span><span style="min-width:0"><b>${esc(n.title)}</b><span class="small bl">${esc(n.text.slice(0,110))}</span><span class="small bl">${ago((Date.now()-n.at)/36e5)}</span></span></button>`).join(''):'<div class="empty">Nothing to show.</div>'}</div></div>`:''}</div>`;
+}
+function bellGo(n){
+  const d=n.data;
+  if(n.act==='openalert')alertDrawer(d.id);
+  else if(n.act==='openref')(requests.some(r=>r.id===d.ref)?reqDrawer:poDrawer)(d.ref);
+  else if(n.act==='openpay')payDrawer(d.id);
+  else if(n.act==='openpo')poDrawer(d.id);
+  else if(n.act==='openreq')reqDrawer(d.id);
+  else if(n.act==='viewdoc')docViewer(d.id);
+  else if(n.act==='suptab'){S.supTab=d.t;render();window.scrollTo(0,0)}
+  else if(n.act==='supthread'){S.supTab=requests.some(r=>r.id===d.ref)?'requests':'pos';S.openThreads[d.ref]=true;comments.forEach(c=>{if(c.ref===d.ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true});render();const el=[...document.querySelectorAll('.card.req')].find(x=>x.textContent.includes(d.ref));if(el)el.scrollIntoView({block:'center'})}
+  else if(n.act==='top'){render();window.scrollTo(0,0)}
+}
+
 /* ---------- ops requests & inventory ---------- */
 function renderRequests(){
   const all=requests.slice().sort((a,b)=>a.hoursAgo-b.hoursAgo);
@@ -1349,6 +1449,10 @@ const ACTIONS={
   },
   mention:e=>{const ta=$('#cm-'+e.dataset.ref),i=ta.selectionStart==null?ta.value.length:ta.selectionStart;ta.value=ta.value.slice(0,i)+'@'+e.dataset.n+' '+ta.value.slice(i);ta.focus()},
   threadtoggle:e=>{const ref=e.dataset.ref;S.openThreads[ref]=!S.openThreads[ref];if(S.openThreads[ref])comments.forEach(c=>{if(c.ref===ref&&c.kind==='shared'&&c.role!=='supplier')c.readBySupplier=true});render()},
+  bell:()=>{S.bellOpen=!S.bellOpen;renderTop()},
+  belltab:e=>{S.bellTab=e.dataset.k;renderTop()},
+  bellall:()=>{curNotifs().forEach(n=>{(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;if(n.id.startsWith('cm:'))comments.forEach(c=>{if('cm:'+c.id===n.id)c.readByOps=true});if(n.id.startsWith('s-cm:'))comments.forEach(c=>{if('s-cm:'+c.id===n.id)c.readBySupplier=true})});renderTop()},
+  bellgo:e=>{const n=curNotifs().find(x=>x.id===e.dataset.id);if(!n)return;(S.role==='ops'?S.readOps:S.readSup)[n.id]=true;S.bellOpen=false;renderTop();bellGo(n)},
   suptab:e=>{S.supTab=e.dataset.t;render()},
   supconfirm:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id),no=$('#so-'+po.id).value.trim(),d=$('#sd-'+po.id).value.split('-').map(Number);po.status='Confirmed';if(no)po.supplierRef=no;if(d.length===3&&!d.some(isNaN))po.eta=new Date(d[0],d[1]-1,d[2]);poEvent(po,`Supplier confirmed${no?' (order '+no+')':''}, arrival ${fdate(po.eta)}`);render();toast('PO confirmed. The brand team is notified.')},
   supprod:e=>{const po=purchaseOrders.find(x=>x.id===e.dataset.id);po.status='In production';poEvent(po,'Supplier started production');render();toast('Marked in production')},
@@ -1367,9 +1471,9 @@ const ACTIONS={
     invoices.push(inv);p.invoiceId=inv.id;
     poEvent(po,`Supplier added invoice ${num} for ${money0(amt)}${amt!==p.amount?' (PO says '+money0(p.amount)+')':''}`);
     render();toast(amt!==p.amount?'Invoice sent. It differs from the PO, so the brand team will check it.':'Invoice sent for review')},
-  invapprove:e=>{const i=invoices.find(x=>x.id===e.dataset.id),p=payments.find(x=>x.id===i.paymentId),po=purchaseOrders.find(x=>x.id===i.poId);i.status='Approved';if(p){p.amount=i.amount;p.due=i.due}poEvent(po,`Invoice ${i.number} approved. Payment of ${money0(i.amount)} due ${fdate(i.due)}`);render();if(e.dataset.back)openBack(e.dataset.back);toast('Invoice approved. Payment scheduled.')},
+  invapprove:e=>{const i=invoices.find(x=>x.id===e.dataset.id),p=payments.find(x=>x.id===i.paymentId),po=purchaseOrders.find(x=>x.id===i.poId);i.status='Approved';i.reviewedAt=Date.now();if(p){p.amount=i.amount;p.due=i.due}poEvent(po,`Invoice ${i.number} approved. Payment of ${money0(i.amount)} due ${fdate(i.due)}`);render();if(e.dataset.back)openBack(e.dataset.back);toast('Invoice approved. Payment scheduled.')},
   invdisputemodal:e=>{const i=invoices.find(x=>x.id===e.dataset.id);textModal('Dispute invoice',`${i.number} · ${money0(i.amount)} from ${supName(i.supplier)}`,'What is wrong? The supplier sees this.','invdispute',i.id,'Send to supplier')},
-  invdispute:e=>{const v=$('#tm-text').value.trim();if(!v){$('#tm-err').textContent='Say what is wrong so the supplier can fix it.';return}const i=invoices.find(x=>x.id===e.dataset.id),p=payments.find(x=>x.id===i.paymentId),po=purchaseOrders.find(x=>x.id===i.poId);i.status='Disputed';i.reviewNote=v;if(p)p.invoiceId=null;poEvent(po,`Invoice ${i.number} disputed: ${v}`);render();toast('Sent back to the supplier')},
+  invdispute:e=>{const v=$('#tm-text').value.trim();if(!v){$('#tm-err').textContent='Say what is wrong so the supplier can fix it.';return}const i=invoices.find(x=>x.id===e.dataset.id),p=payments.find(x=>x.id===i.paymentId),po=purchaseOrders.find(x=>x.id===i.poId);i.status='Disputed';i.reviewedAt=Date.now();i.reviewNote=v;if(p)p.invoiceId=null;poEvent(po,`Invoice ${i.number} disputed: ${v}`);render();toast('Sent back to the supplier')},
   createreq:()=>{
     const b=brandById(+$('#nb').value), no=$('#no').value.replace(/\D/g,''), q=parseInt($('#nq').value,10);
     if(!no){$('#nerr').textContent='Enter the Shopify order number.';return}
@@ -1421,6 +1525,7 @@ document.addEventListener('change',ev=>{
   else if(t.id==='invrisk'){S.invRisk=t.value;render()}
   else if(t.id==='invmode'){S.invBrand=t.value;render()}
   else if(t.id==='tass'){S.tAss=t.value;S.tShow=40;render()}
+  else if(t.id==='bme'){S.me=t.value;renderTop();S.bellOpen&&0}
   else if(t.id==='nb')fillNewReq();
   else if(t.id==='nt')fillNewAddr();
   else if(t.id==='us')fillUrgent();
@@ -1441,7 +1546,9 @@ document.addEventListener('input',ev=>{
   if(ev.target.id==='docq'){S.docQ=ev.target.value;const p=ev.target.selectionStart;render();const i=$('#docq');i.focus();i.setSelectionRange(p,p)}
   if(ev.target.id==='invq'){S.invQ=ev.target.value;const p=ev.target.selectionStart;render();const i=$('#invq');i.focus();i.setSelectionRange(p,p)}
 });
+document.addEventListener('click',ev=>{if(S.bellOpen&&!ev.target.closest('.bellwrap')){S.bellOpen=false;renderTop()}});
 document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'&&S.bellOpen){S.bellOpen=false;renderTop()}
   if(ev.key==='Enter'&&ev.target.matches('tr[data-act]'))ACTIONS[ev.target.dataset.act](ev.target,ev);
   if(ev.key==='Escape')$('#layer').innerHTML='';
 });
