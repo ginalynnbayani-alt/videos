@@ -1,24 +1,35 @@
 <title>Brand Hub</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: sticky top bar, role switch (Ops / Supplier), page content in a centered 1200px column; tables scroll inside their own wrapper. */
 :root{
-  --bg:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#6f6d67;
-  --line:#e1e0d9; --axis:#c3c2b7; --wash:#f0efec; --accent:#2a78d6; --accent-soft:#cde2fb; --on-accent:#ffffff;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
-  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --serious:#ec835a; --good-ink:#006300;
-  --shadow:0 1px 2px rgba(11,11,11,.06),0 8px 24px rgba(11,11,11,.08);
-  --sans:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#F6F4EE; --surface:#FFFFFF; --ink:#1C2420; --ink2:#4F5A54; --muted:#66706A;
+  --line:#E1DDCF; --axis:#C9C4B3; --wash:#EFECE2; --accent:#12335C; --accent-deep:#0A1E38; --accent-soft:#D9E2EE; --on-accent:#FFFFFF;
+  --gold:#C9972E; --on-c:#FFFFFF;
+  --side-bg:#0A1E38; --side-ink:rgba(237,234,224,.78); --side-ink-strong:#F6F4EE; --side-line:rgba(255,255,255,.12); --side-hover:rgba(255,255,255,.07); --side-active-bg:#F6F4EE; --side-active-ink:#0A1E38;
+  --thead-bg:#0A1E38; --thead-ink:#EDEAE0;
+  --s1:#2F66B8; --s2:#D08A1E; --s3:#2E8B6A;
+  --good:#3C7A5A; --warn:#C9972E; --crit:#B5473A; --serious:#C9722E; --good-ink:#2F6B4D;
+  --card-shadow:0 1px 2px rgba(28,36,32,.06),0 2px 8px rgba(28,36,32,.04);
+  --shadow:0 1px 2px rgba(28,36,32,.08),0 10px 30px rgba(28,36,32,.18);
+  --sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif; --serif:'Fraunces',Georgia,'Times New Roman',serif; --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
-  --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-  --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}}
+  --bg:#0F1512; --surface:#18211C; --ink:#EDEAE0; --ink2:#B9C0B8; --muted:#8F9A92;
+  --line:#2A352E; --axis:#3B4740; --wash:#212C25; --accent:#8FB3E3; --accent-deep:#B7D0F0; --accent-soft:#1D3B5E; --on-accent:#0A1E38;
+  --gold:#D9A844; --on-c:#0F1512;
+  --side-bg:#091B2E; --thead-bg:#12283F;
+  --s1:#5B8FD6; --s2:#B98A1E; --s3:#3A9E7C;
+  --good:#5FA382; --warn:#D9A844; --crit:#D77A6C; --serious:#D98F5C; --good-ink:#6FB794;
+  --card-shadow:none; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.55); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#a09e96;
-  --line:#2c2c2a; --axis:#383835; --wash:#242422; --accent:#3987e5; --accent-soft:#184f95; --on-accent:#0b0b0b;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-  --good-ink:#0ca30c; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}
+  --bg:#0F1512; --surface:#18211C; --ink:#EDEAE0; --ink2:#B9C0B8; --muted:#8F9A92;
+  --line:#2A352E; --axis:#3B4740; --wash:#212C25; --accent:#8FB3E3; --accent-deep:#B7D0F0; --accent-soft:#1D3B5E; --on-accent:#0A1E38;
+  --gold:#D9A844; --on-c:#0F1512;
+  --side-bg:#091B2E; --thead-bg:#12283F;
+  --s1:#5B8FD6; --s2:#B98A1E; --s3:#3A9E7C;
+  --good:#5FA382; --warn:#D9A844; --crit:#D77A6C; --serious:#D98F5C; --good-ink:#6FB794;
+  --card-shadow:none; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.55); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -199,6 +210,41 @@ details.sec>summary:focus-visible{outline:2px solid var(--accent);outline-offset
 .unreadrow{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding:8px 10px!important;margin-top:10px;box-shadow:inset 3px 0 0 var(--accent)}
 .cmsg.fresh{box-shadow:inset 3px 0 0 var(--accent)}
 .tabs .newdot{margin-left:6px}
+
+/* ---- LaunchVector theme: warm paper page, navy chrome, gold accent, Fraunces headings ---- */
+h1,h2{font-family:var(--serif);font-weight:600;letter-spacing:-.005em}
+h1{font-size:27px} h2{font-size:17px}
+.proto{font-family:var(--mono);font-size:11px;letter-spacing:.03em}
+.logo{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1.1;letter-spacing:0}
+.logo small{display:block;font:500 9.5px/1.2 var(--mono);letter-spacing:.16em;opacity:.65;margin-bottom:2px}
+.logo i{width:22px;height:22px;border-radius:6px;background:var(--gold)}
+.logo i::after{inset:6px;border-radius:2px;background:#0A1E38}
+.kpi .v{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
+.kpi h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.card,.tablewrap{box-shadow:var(--card-shadow)}
+th{background:var(--thead-bg);color:var(--thead-ink);letter-spacing:.06em;border-bottom:0}
+th button:hover{color:#fff}
+details.sec>summary h3{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600}
+.tabs button[aria-selected="true"]{border-bottom-color:var(--gold)}
+.btn.primary:hover{filter:none;background:var(--accent-deep);border-color:var(--accent-deep)}
+.link{color:var(--accent)}
+.pill b{color:var(--on-c)}
+.pill.warn b{color:#1C2420}
+.badge{color:var(--on-c)}
+.si .newdot{background:var(--gold);color:#0A1E38}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+/* sidebar */
+.side{background:var(--side-bg);border-right:0;color:var(--side-ink)}
+.side .logo{color:var(--side-ink-strong)}
+.side .grp{color:rgba(237,234,224,.5);font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;font-weight:500}
+.si{color:var(--side-ink);font-weight:600;font-size:13.5px}
+.si:hover{background:var(--side-hover);color:var(--side-ink-strong)}
+.si[aria-current="page"]{background:var(--side-active-bg);color:var(--side-active-ink);box-shadow:inset 3px 0 0 var(--gold)}
+.side .tag{background:rgba(255,255,255,.14);color:var(--side-ink-strong)}
+.side .si[aria-current="page"] .tag{background:rgba(10,30,56,.12);color:var(--side-active-ink)}
+.side-foot{border-top-color:var(--side-line)}
+.pip{background:var(--gold);border-color:var(--side-bg)}
+@media (min-width:861px){.side.collapsed .grp{background:var(--side-line)}}
 </style>
 
 <div class="shell">
@@ -356,7 +402,7 @@ const ico=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const CRUMB={portfolio:'Brands',brand:'Brands',opsHome:'Ops team · Overview',requests:'Ops team · Supplier requests',inventory:'Ops team · Inventory',psHome:'Partner success · Overview',tracker:'Partner success · Update tracker',activity:'Partner success · Activity log',pos:'Ops team · Purchase orders',payments:'Ops team · Supplier payments',docs:'Ops team · Documents',alerts:'Ops team · Urgent alerts'};
 function renderTop(){
   const ops=S.role==='ops';
-  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i>Brand Hub</div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
+  $('#topbar').innerHTML=`${ops?`<button class="iconbtn" data-act="side" aria-label="Toggle sidebar">${ico('menu')}</button>`:''}<div class="logo toplogo ${ops?'':'show'}"><i></i><span><small>LAUNCHVECTOR</small>Brand Hub</span></div><span class="small">${ops?esc(CRUMB[S.page]||''):'Supplier portal'}</span>
   <span class="spacer"></span>
   ${!ops?`<select id="supsel" aria-label="Viewing as supplier">${SUPPLIERS.map(s=>`<option value="${s.id}" ${S.supplierId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`:''}
   ${bellHtml()}
@@ -371,7 +417,7 @@ function renderSide(){
   const cur=S.page==='brand'?'portfolio':S.page, ro=openReqs0(), od=brands.filter(b=>urg(dueOf(b))==='overdue').length, lp=purchaseOrders.filter(poLate).length, op=payments.filter(p=>!p.paidOn&&payStatus(p)==='overdue').length;
   const it=(p,l,i,badge,nw)=>`<button class="si" data-act="nav" data-p="${p}" title="${l}${nw?' ('+nw+' unread supplier message'+(nw>1?'s':'')+')':''}" ${cur===p?'aria-current="page"':''}>${ico(i)}${nw?'<span class="pip"></span>':''}<span class="lbl">${l}</span>${nw?`<span class="newdot">● ${nw}</span>`:''}${badge?`<span class="tag">${badge}</span>`:''}</button>`;
   const unRq=requests.reduce((a,r)=>a+unreadOps(r.id),0), unPo=purchaseOrders.reduce((a,po)=>a+unreadOps(po.id),0);
-  el.innerHTML=`<div class="logo"><i></i><span class="lbl">Brand Hub</span></div>
+  el.innerHTML=`<div class="logo"><i></i><span class="lbl"><small>LAUNCHVECTOR</small>Brand Hub</span></div>
   ${it('portfolio','Brands','grid')}
   <div class="grp"><span class="lbl">Ops team</span></div>
   ${it('opsHome','Ops overview','pulse')}${it('alerts','Urgent alerts','bolt',alertsOpen())}${it('requests','Supplier requests','truck',ro,unRq)}${it('pos','Purchase orders','doc',lp,unPo)}${it('payments','Supplier payments','card',op)}${it('docs','Documents','folder',newDocs())}${it('inventory','Inventory','box')}
